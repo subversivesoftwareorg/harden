@@ -20,11 +20,15 @@ struct SystemChecker {
         async let xprotectCheck = checkXProtect()
         async let secureBootCheck = checkSecureBoot()
         async let rsrCheck = checkRapidSecurityResponse()
+        async let auditdCheck = checkAuditDaemon()
+        async let auditFlagsCheck = checkAuditFlags()
+        async let auditPermsCheck = checkAuditLogPermissions()
         return await [
             sipCheck, gatekeeperCheck, autoUpdateCheck, autoDownloadCheck, autoInstallCheck,
             criticalUpdateCheck, configDataCheck, appStoreUpdateCheck, versionCheck, findMyCheck,
             extensionsCheck, uptimeCheck, ntpCheck, malwareCheck,
             xprotectCheck, secureBootCheck, rsrCheck,
+            auditdCheck, auditFlagsCheck, auditPermsCheck,
         ]
     }
 
@@ -478,6 +482,109 @@ struct SystemChecker {
                 check.status = .info
                 check.details = "This Mac does not have Apple Silicon or a T2 chip. Hardware Secure Boot is not available."
             }
+        }
+        return check
+    }
+
+    private func checkAuditDaemon() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "system.auditd",
+            name: "Security Auditing",
+            description: "The macOS audit daemon (auditd) logs security-relevant events such as logins, privilege escalations, and file access.",
+            category: .systemProtection,
+            severity: .medium
+        )
+        let result = await ShellCommand.run("launchctl list 2>/dev/null | grep -c com.apple.auditd")
+        let running = (Int(result.output) ?? 0) > 0
+        if running {
+            check.status = .pass
+            check.details = "Security auditing (auditd) is running."
+        } else {
+            check.status = .fail
+            check.details = "Security auditing (auditd) is not running."
+            check.recommendation = "Enable auditing with: sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.auditd.plist"
+        }
+        return check
+    }
+
+    private func checkAuditFlags() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "system.auditflags",
+            name: "Audit Control Flags",
+            description: "The audit system should be configured to log key events: login/logout, administrative actions, file deletion, and file attribute modification.",
+            category: .systemProtection,
+            severity: .medium
+        )
+        let result = await ShellCommand.run("grep '^flags:' /etc/security/audit_control 2>/dev/null")
+        if result.output.isEmpty || result.exitCode != 0 {
+            check.status = .warning
+            check.details = "Could not read audit configuration."
+            check.recommendation = "Verify /etc/security/audit_control exists and contains appropriate flags (e.g., lo,ad,fd,fm,-all)."
+            return check
+        }
+        let flags = result.output.replacingOccurrences(of: "flags:", with: "").trimmingCharacters(in: .whitespaces)
+        let requiredFlags = ["lo", "ad", "fd", "fm"]
+        var missing: [String] = []
+        for flag in requiredFlags {
+            if !flags.contains(flag) {
+                missing.append(flag)
+            }
+        }
+        if missing.isEmpty {
+            check.status = .pass
+            check.details = "Audit flags configured: \(flags)"
+        } else {
+            check.status = .warning
+            check.details = "Audit flags \(flags) are missing: \(missing.joined(separator: ", "))."
+            check.recommendation = "Edit /etc/security/audit_control to include flags: lo,ad,fd,fm,-all"
+        }
+        return check
+    }
+
+    private func checkAuditLogPermissions() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "system.auditperms",
+            name: "Audit Log Permissions",
+            description: "Audit log files and their directory should have restrictive permissions to prevent tampering.",
+            category: .systemProtection,
+            severity: .medium
+        )
+        let dirResult = await ShellCommand.run("stat -f '%Lp %Su %Sg' /var/audit 2>/dev/null")
+        if dirResult.output.isEmpty || dirResult.exitCode != 0 {
+            check.status = .info
+            check.details = "Could not check audit log directory permissions (may require elevated privileges)."
+            return check
+        }
+        let parts = dirResult.output.split(separator: " ")
+        guard parts.count >= 3 else {
+            check.status = .unknown
+            check.details = "Could not parse audit directory permissions."
+            return check
+        }
+        let mode = String(parts[0])
+        let owner = String(parts[1])
+        let group = String(parts[2])
+        var issues: [String] = []
+        if let modeInt = Int(mode), modeInt > 700 {
+            issues.append("directory permissions \(mode) are too permissive (should be 700 or stricter)")
+        }
+        if owner != "root" {
+            issues.append("owned by \(owner) instead of root")
+        }
+        if group != "wheel" {
+            issues.append("group is \(group) instead of wheel")
+        }
+        let aclResult = await ShellCommand.run("ls -lde /var/audit 2>/dev/null | grep -c '^ [0-9]'")
+        if (Int(aclResult.output) ?? 0) > 0 {
+            issues.append("directory has ACLs that should be removed")
+        }
+        if issues.isEmpty {
+            check.status = .pass
+            check.details = "Audit log directory has correct permissions (\(mode), \(owner):\(group))."
+        } else {
+            check.status = .warning
+            check.details = "Audit log issues: \(issues.joined(separator: "; "))."
+            check.recommendation = "Fix with: sudo chmod 700 /var/audit && sudo chown root:wheel /var/audit"
         }
         return check
     }

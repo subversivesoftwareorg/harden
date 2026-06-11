@@ -26,8 +26,9 @@ Harden/
     HardenApp.swift              # @main entry, About panel menu command
     AppDelegate.swift            # Standard About panel
   Models/
-    SecurityCheck.swift          # SecurityCheck struct, CheckStatus, CheckSeverity enums
+    SecurityCheck.swift          # SecurityCheck struct, STIGReference, CheckStatus, CheckSeverity
     CheckCategory.swift          # CheckCategory enum (7 categories with icons/colors)
+    STIGMapping.swift            # DISA STIG check-ID-to-rule catalog
   Services/
     SecurityScanner.swift        # Orchestrator: runs all checkers in parallel, ShellCommand helper
     Checkers/
@@ -63,6 +64,8 @@ HardenTests/
 Each checker is a struct with a `runChecks() async -> [SecurityCheck]` method. Checks run real macOS shell commands via `ShellCommand.run()`, which wraps `Process` in async/await. The `SecurityScanner` orchestrator runs all 7 checkers in parallel with `async let`.
 
 Commands used include `defaults read`, `fdesetup status`, `csrutil status`, `spctl --status`, `socketfilterfw`, `launchctl list`, `systemsetup`, `networksetup`, `cupsctl`, and the `airport` utility.
+
+After all checkers run, the `SecurityScanner` enriches each check with STIG references from `STIGMapping.catalog`. This keeps STIG metadata centralized rather than scattered across checkers.
 
 ### Adding a New Check
 
@@ -104,6 +107,10 @@ Snoozed action items are stored as `{checkID: expiryTimestamp}` in `~/Library/Ap
 - Use "Action Items" not "violations" or "findings"
 - Recommendations should say "Open System Settings > ..." not "Run this terminal command" (include terminal as secondary option for advanced users)
 - Severity labels: Critical, High, Medium, Low, Info
+
+## STIG Compliance
+
+39 of 64 checks are mapped to 47 unique rules from the DISA STIG for Apple macOS 15 Sequoia (V1R7). All STIG IDs verified against stigaview.com. STIG IDs appear as color-coded badges in the All Checks view and are included in JSON exports. See [docs/STIG.md](docs/STIG.md) for the full mapping, coverage analysis, and source attribution.
 
 ## Roadmap
 

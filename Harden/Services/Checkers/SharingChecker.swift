@@ -12,10 +12,17 @@ struct SharingChecker {
         async let airdropCheck = checkAirDrop()
         async let insecureServicesCheck = checkInsecureServices()
         async let sshHardeningCheck = checkSSHHardening()
+        async let remoteAppleEventsCheck = checkRemoteAppleEvents()
+        async let internetSharingCheck = checkInternetSharing()
+        async let mediaSharingCheck = checkMediaSharing()
+        async let airplayReceiverCheck = checkAirPlayReceiver()
+        async let contentCachingCheck = checkContentCaching()
         return await [
             remoteLoginCheck, screenSharingCheck, fileSharingCheck,
             remoteManagementCheck, printerSharingCheck, bluetoothSharingCheck,
             airdropCheck, insecureServicesCheck, sshHardeningCheck,
+            remoteAppleEventsCheck, internetSharingCheck, mediaSharingCheck,
+            airplayReceiverCheck, contentCachingCheck,
         ]
     }
 
@@ -203,6 +210,115 @@ struct SharingChecker {
         } else {
             check.status = .pass
             check.details = "Bluetooth Sharing is disabled."
+        }
+        return check
+    }
+
+    private func checkRemoteAppleEvents() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "sharing.remoteappleevents",
+            name: "Remote Apple Events",
+            description: "Remote Apple Events allows other computers to send Apple Events to your Mac, which can be used to control applications remotely.",
+            category: .sharing,
+            severity: .medium
+        )
+        let result = await ShellCommand.run("systemsetup -getremoteappleevents 2>/dev/null")
+        if result.output.lowercased().contains("off") {
+            check.status = .pass
+            check.details = "Remote Apple Events is disabled."
+        } else if result.output.lowercased().contains("on") {
+            check.status = .warning
+            check.details = "Remote Apple Events is enabled."
+            check.recommendation = "Disable via: sudo systemsetup -setremoteappleevents off"
+        } else {
+            check.status = .pass
+            check.details = "Remote Apple Events appears to be disabled (default)."
+        }
+        return check
+    }
+
+    private func checkInternetSharing() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "sharing.internetsharing",
+            name: "Internet Sharing",
+            description: "Internet Sharing turns your Mac into a network router, sharing its internet connection with other devices. This expands the attack surface.",
+            category: .sharing,
+            severity: .medium
+        )
+        let result = await ShellCommand.run("defaults read /Library/Preferences/SystemConfiguration/com.apple.nat NAT 2>/dev/null")
+        if result.exitCode != 0 || result.output.contains("does not exist") || result.output.isEmpty {
+            check.status = .pass
+            check.details = "Internet Sharing is not configured."
+        } else if result.output.contains("Enabled = 1") {
+            check.status = .warning
+            check.details = "Internet Sharing is enabled."
+            check.recommendation = "Disable it in System Settings > General > Sharing > Internet Sharing."
+        } else {
+            check.status = .pass
+            check.details = "Internet Sharing is disabled."
+        }
+        return check
+    }
+
+    private func checkMediaSharing() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "sharing.mediasharing",
+            name: "Media Sharing",
+            description: "Media Sharing allows other devices on your network to access your shared media libraries.",
+            category: .sharing,
+            severity: .low
+        )
+        let result = await ShellCommand.run("defaults read com.apple.amp.mediasharingd home-sharing-enabled 2>/dev/null")
+        if result.output == "1" || result.output.lowercased() == "true" {
+            check.status = .warning
+            check.details = "Media Sharing is enabled."
+            check.recommendation = "Disable it in System Settings > General > Sharing > Media Sharing."
+        } else {
+            check.status = .pass
+            check.details = "Media Sharing is disabled."
+        }
+        return check
+    }
+
+    private func checkAirPlayReceiver() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "sharing.airplayreceiver",
+            name: "AirPlay Receiver",
+            description: "AirPlay Receiver allows other Apple devices to stream content to your Mac. This opens a network service.",
+            category: .sharing,
+            severity: .low
+        )
+        let result = await ShellCommand.run("defaults read com.apple.controlcenter AirplayRecieverEnabled 2>/dev/null")
+        if result.output == "0" || result.output.lowercased() == "false" {
+            check.status = .pass
+            check.details = "AirPlay Receiver is disabled."
+        } else if result.output == "1" || result.output.lowercased() == "true" {
+            check.status = .info
+            check.details = "AirPlay Receiver is enabled. Other devices can stream content to this Mac."
+            check.recommendation = "If not needed, disable in System Settings > General > AirDrop & Handoff > AirPlay Receiver."
+        } else {
+            check.status = .info
+            check.details = "AirPlay Receiver status could not be determined. Check System Settings > General > AirDrop & Handoff."
+        }
+        return check
+    }
+
+    private func checkContentCaching() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "sharing.contentcaching",
+            name: "Content Caching",
+            description: "Content Caching stores Apple software updates and iCloud content locally to reduce bandwidth. It runs a local web server.",
+            category: .sharing,
+            severity: .low
+        )
+        let result = await ShellCommand.run("defaults read /Library/Preferences/com.apple.AssetCache.plist Activated 2>/dev/null")
+        if result.output == "1" || result.output.lowercased() == "true" {
+            check.status = .info
+            check.details = "Content Caching is enabled."
+            check.recommendation = "Unless needed for multiple Apple devices on this network, disable in System Settings > General > Sharing > Content Caching."
+        } else {
+            check.status = .pass
+            check.details = "Content Caching is not active."
         }
         return check
     }

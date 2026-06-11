@@ -51,6 +51,10 @@ final class SecurityScanner {
         let allChecks = await firewallChecks + encryptionChecks + systemChecks
             + sharingChecks + authChecks + networkChecks + privacyChecks
 
-        return allChecks
+        return allChecks.map { check in
+            var enriched = check
+            enriched.stigReferences = STIGMapping.catalog[check.id] ?? []
+            return enriched
+        }
     }
 }

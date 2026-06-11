@@ -11,10 +11,15 @@ struct AuthenticationChecker {
         async let loginWindowCheck = checkLoginWindowStyle()
         async let homeDirCheck = checkHomeDirectoryPermissions()
         async let passwordPolicyCheck = checkPasswordPolicy()
+        async let fdeAutoLoginCheck = checkFileVaultAutoLogin()
+        async let hotCornersCheck = checkHotCorners()
+        async let consoleLoginCheck = checkConsoleLogin()
+        async let appleWatchCheck = checkAppleWatchUnlock()
         return await [
             autoLoginCheck, passwordAfterSleepCheck, guestAccountCheck,
             lockDelayCheck, idleTimeoutCheck, loginWindowCheck, homeDirCheck,
             passwordPolicyCheck,
+            fdeAutoLoginCheck, hotCornersCheck, consoleLoginCheck, appleWatchCheck,
         ]
     }
 
@@ -197,6 +202,103 @@ struct AuthenticationChecker {
         } else {
             check.status = .unknown
             check.details = "Could not determine home directory permissions."
+        }
+        return check
+    }
+
+    private func checkFileVaultAutoLogin() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "auth.filevaultautologin",
+            name: "FileVault Auto-Login",
+            description: "When FileVault is enabled, auto-login can bypass the pre-boot authentication, defeating the purpose of full-disk encryption.",
+            category: .authentication,
+            severity: .high
+        )
+        let fdeResult = await ShellCommand.run("fdesetup status 2>/dev/null")
+        guard fdeResult.output.contains("On") else {
+            check.status = .pass
+            check.details = "FileVault is not enabled — FDE auto-login check not applicable."
+            return check
+        }
+        let result = await ShellCommand.run("defaults read com.apple.loginwindow DisableFDEAutoLogin 2>/dev/null")
+        if result.output == "1" || result.output.lowercased() == "true" {
+            check.status = .pass
+            check.details = "FileVault auto-login is disabled. Pre-boot authentication is required."
+        } else {
+            check.status = .fail
+            check.details = "FileVault auto-login is not explicitly disabled."
+            check.recommendation = "Disable with: sudo defaults write com.apple.loginwindow DisableFDEAutoLogin -bool true"
+        }
+        return check
+    }
+
+    private func checkHotCorners() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "auth.hotcorners",
+            name: "Hot Corner Security",
+            description: "Hot corners that disable the screen saver can be used to bypass the lock screen, allowing unauthorized access.",
+            category: .authentication,
+            severity: .medium
+        )
+        let corners = ["wvous-tl-corner", "wvous-tr-corner", "wvous-bl-corner", "wvous-br-corner"]
+        let cornerNames = ["top-left", "top-right", "bottom-left", "bottom-right"]
+        var insecure: [String] = []
+        for (i, corner) in corners.enumerated() {
+            let result = await ShellCommand.run("defaults read com.apple.dock \(corner) 2>/dev/null")
+            if let value = Int(result.output), value == 6 {
+                insecure.append(cornerNames[i])
+            }
+        }
+        if insecure.isEmpty {
+            check.status = .pass
+            check.details = "No hot corners are configured to disable the screen saver."
+        } else {
+            check.status = .warning
+            check.details = "Hot corner\(insecure.count == 1 ? "" : "s") set to disable screen saver: \(insecure.joined(separator: ", "))."
+            check.recommendation = "Change in System Settings > Desktop & Dock > Hot Corners. Avoid 'Disable Screen Saver' as it can bypass the lock screen."
+        }
+        return check
+    }
+
+    private func checkConsoleLogin() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "auth.consolelogin",
+            name: "Console Login",
+            description: "The \">console\" login allows switching to a text-based login from the graphical login window, which can bypass certain security controls.",
+            category: .authentication,
+            severity: .low
+        )
+        let result = await ShellCommand.run("defaults read /Library/Preferences/com.apple.loginwindow DisableConsoleAccess 2>/dev/null")
+        if result.output == "1" || result.output.lowercased() == "true" {
+            check.status = .pass
+            check.details = "Console login access is disabled."
+        } else {
+            check.status = .info
+            check.details = "Console login access is not explicitly disabled."
+            check.recommendation = "To disable, run: sudo defaults write /Library/Preferences/com.apple.loginwindow DisableConsoleAccess -bool true"
+        }
+        return check
+    }
+
+    private func checkAppleWatchUnlock() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "auth.applewatch",
+            name: "Apple Watch Auto-Unlock",
+            description: "Apple Watch can automatically unlock your Mac when nearby, which may allow unintended access if the watch wearer is close but not actively using the Mac.",
+            category: .authentication,
+            severity: .low
+        )
+        let result = await ShellCommand.run("defaults read com.apple.applicationaccess allowAutoUnlock 2>/dev/null")
+        if result.output == "0" || result.output.lowercased() == "false" {
+            check.status = .pass
+            check.details = "Apple Watch auto-unlock is disabled."
+        } else if result.output == "1" || result.output.lowercased() == "true" {
+            check.status = .info
+            check.details = "Apple Watch auto-unlock is enabled. Your Mac can be unlocked by proximity to your Apple Watch."
+            check.recommendation = "If not desired, disable in System Settings > Touch ID & Password > Apple Watch."
+        } else {
+            check.status = .info
+            check.details = "Apple Watch auto-unlock uses the system default. Check System Settings > Touch ID & Password."
         }
         return check
     }

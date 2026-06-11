@@ -2,7 +2,7 @@
 
 ## Current State
 
-52 security checks across 7 categories: Firewall (5), Encryption (2), System Protection (17), Sharing (9), Authentication (8), Network (6), Privacy (5).
+64 security checks across 7 categories: Firewall (5), Encryption (2), System Protection (20), Sharing (14), Authentication (12), Network (6), Privacy (5). 39 checks are mapped to 47 unique DISA STIG rules (V1R7, verified).
 
 The app builds, runs, and scans. Dashboard, Action Items, and All Checks tabs are functional. All three phases of checks are complete.
 
@@ -100,6 +100,40 @@ High value but harder to implement or limited to newer macOS versions. These are
 - [x] **Password policy strength** — `pwpolicy -getaccountpolicies`. Check minimum length, complexity requirements, account lockout thresholds.
 
 **Phase 3 total: 6 new checks (46 → 52) — COMPLETE**
+
+---
+
+## Phase 4 — STIG Integration
+
+Ground existing and new checks in the DISA Security Technical Implementation Guide for Apple macOS 15 Sequoia (V1R6). Adds authoritative backing, STIG ID metadata, and coverage of rules not previously implemented.
+
+### Model & Infrastructure
+- [x] `STIGReference` struct (id, title, severity)
+- [x] `stigReferences` property on `SecurityCheck`
+- [x] `STIGMapping.swift` central catalog (37 check-to-STIG mappings)
+- [x] Scanner enrichment — STIG refs applied after check collection
+- [x] JSON export includes STIG references
+- [x] STIG badges in All Checks detail view (color-coded by CAT level, searchable)
+
+### New STIG Checks (12)
+- [x] `system.auditd` — Security auditing service (APPL-15-001003)
+- [x] `system.auditflags` — Audit control flags (APPL-15-001001)
+- [x] `system.auditperms` — Audit log permissions (APPL-15-000030/31)
+- [x] `sharing.remoteappleevents` — Remote Apple Events (APPL-15-002022)
+- [x] `sharing.internetsharing` — Internet Sharing (APPL-15-002007)
+- [x] `sharing.mediasharing` — Media Sharing (APPL-15-002160)
+- [x] `sharing.airplayreceiver` — AirPlay Receiver (APPL-15-002180)
+- [x] `sharing.contentcaching` — Content Caching (APPL-15-002200)
+- [x] `auth.filevaultautologin` — FDE auto-login (APPL-15-000033)
+- [x] `auth.hotcorners` — Hot corner security (APPL-15-000007)
+- [x] `auth.consolelogin` — Console login (APPL-15-000090)
+- [x] `auth.applewatch` — Apple Watch auto-unlock (APPL-15-000001)
+
+### Documentation & Testing
+- [x] `docs/STIG.md` — Full mapping, attribution, coverage analysis
+- [x] STIG mapping tests (validity, coverage, no duplicates)
+
+**Phase 4 total: 12 new checks (52 → 64), 39 checks mapped to 47 unique STIG rules (V1R7, verified) — COMPLETE**
 
 ---
 

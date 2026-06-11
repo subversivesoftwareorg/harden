@@ -1,5 +1,11 @@
 import Foundation
 
+struct STIGReference: Codable, Identifiable {
+    let id: String
+    let title: String
+    let severity: String
+}
+
 enum CheckStatus: String, Codable {
     case pass
     case fail
@@ -49,6 +55,7 @@ struct SecurityCheck: Identifiable {
     var status: CheckStatus = .unknown
     var details: String = ""
     var recommendation: String = ""
+    var stigReferences: [STIGReference] = []
 
     /// Deep link to the relevant System Settings pane, if available.
     var settingsURL: URL? {
@@ -87,6 +94,16 @@ struct SecurityCheck: Identifiable {
             "privacy.tcc": "x-apple.systempreferences:com.apple.preference.security?Privacy",
             // Network
             "network.dns": "x-apple.systempreferences:com.apple.wifi-settings-extension",
+            // STIG additions
+            "sharing.remoteappleevents": "x-apple.systempreferences:com.apple.Sharing-Settings.extension",
+            "sharing.internetsharing": "x-apple.systempreferences:com.apple.Sharing-Settings.extension",
+            "sharing.mediasharing": "x-apple.systempreferences:com.apple.Sharing-Settings.extension",
+            "sharing.airplayreceiver": "x-apple.systempreferences:com.apple.AirDrop-Handoff-Settings.extension",
+            "sharing.contentcaching": "x-apple.systempreferences:com.apple.Sharing-Settings.extension",
+            "auth.filevaultautologin": "x-apple.systempreferences:com.apple.preference.security?FileVault",
+            "auth.hotcorners": "x-apple.systempreferences:com.apple.Desktop-Settings.extension",
+            "auth.consolelogin": "x-apple.systempreferences:com.apple.preferences.users",
+            "auth.applewatch": "x-apple.systempreferences:com.apple.Touch-ID-Settings.extension",
         ]
         guard let urlString = mapping[id] else { return nil }
         return URL(string: urlString)

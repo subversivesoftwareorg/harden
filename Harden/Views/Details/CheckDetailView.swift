@@ -87,6 +87,7 @@ struct CheckDetailView: View {
                 $0.name.lowercased().contains(query)
                 || $0.description.lowercased().contains(query)
                 || $0.details.lowercased().contains(query)
+                || $0.stigReferences.contains { $0.id.lowercased().contains(query) }
             }
         }
         return result
@@ -135,6 +136,16 @@ struct CheckDetailView: View {
                     .font(.body)
                     .fontWeight(.medium)
                 Spacer()
+                ForEach(check.stigReferences) { stig in
+                    Text(stig.id)
+                        .font(.system(size: 9, design: .monospaced))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(stigColor(stig.severity).opacity(0.15))
+                        .foregroundStyle(stigColor(stig.severity))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        .help("\(stig.title) (\(stig.severity))")
+                }
                 Text(check.severity.label)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -174,6 +185,15 @@ struct CheckDetailView: View {
         .padding(10)
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func stigColor(_ severity: String) -> Color {
+        switch severity {
+        case "CAT I": return .red
+        case "CAT II": return .orange
+        case "CAT III": return .yellow
+        default: return .secondary
+        }
     }
 
     private func statusIcon(_ status: CheckStatus) -> some View {
