@@ -26,6 +26,10 @@ struct MainTabView: View {
             CheckDetailView()
                 .tabItem { Label("All Checks", systemImage: "list.bullet.rectangle") }
                 .tag(2)
+
+            STIGReportView()
+                .tabItem { Label("STIG Report", systemImage: "shield.checkered") }
+                .tag(3)
         }
         .environment(store)
         .environment(scanner)

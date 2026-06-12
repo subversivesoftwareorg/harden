@@ -194,7 +194,7 @@ if [ "$SKIP_NOTARIZE" = false ] && [ -n "$IDENTITY" ]; then
     fi
 fi
 
-# ── Sparkle update archive ───────────────────────────────────────
+# ── Sparkle update archive (for auto-update only, not manual install) ─
 echo "==> Creating Sparkle update archive..."
 ZIP_NAME="Harden-${VERSION}-b${NEW_BUILD}.zip"
 ZIP_PATH="$BUILD_DIR/$ZIP_NAME"
