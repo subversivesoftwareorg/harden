@@ -33,6 +33,7 @@
 		A10000000000000000000019 /* Remediation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* Remediation.swift */; };
 		A1000000000000000000001A /* RemediationRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001A /* RemediationRunner.swift */; };
 		A1000000000000000000001B /* STIGMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* STIGMapping.swift */; };
+		A1000000000000000000001C /* CheckForUpdatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001C /* CheckForUpdatesView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,6 +64,7 @@
 		B10000000000000000000019 /* Remediation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Remediation.swift; sourceTree = "<group>"; };
 		B1000000000000000000001A /* RemediationRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemediationRunner.swift; sourceTree = "<group>"; };
 		B1000000000000000000001B /* STIGMapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STIGMapping.swift; sourceTree = "<group>"; };
+		B1000000000000000000001C /* CheckForUpdatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckForUpdatesView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -167,6 +169,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000016 /* AnvilIconView.swift */,
+				B1000000000000000000001C /* CheckForUpdatesView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -308,6 +311,7 @@
 				A1000000000000000000000D /* SecurityStore.swift in Sources */,
 				A10000000000000000000008 /* SharingChecker.swift in Sources */,
 				A1000000000000000000001B /* STIGMapping.swift in Sources */,
+				A1000000000000000000001C /* CheckForUpdatesView.swift in Sources */,
 				A10000000000000000000009 /* SystemChecker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -29,6 +29,7 @@ Harden/
     SecurityCheck.swift          # SecurityCheck struct, STIGReference, CheckStatus, CheckSeverity
     CheckCategory.swift          # CheckCategory enum (7 categories with icons/colors)
     STIGMapping.swift            # DISA STIG check-ID-to-rule catalog
+    Remediation.swift            # Remediation commands keyed by check ID
   Services/
     SecurityScanner.swift        # Orchestrator: runs all checkers in parallel, ShellCommand helper
     Checkers/
@@ -107,6 +108,18 @@ Snoozed action items are stored as `{checkID: expiryTimestamp}` in `~/Library/Ap
 - Use "Action Items" not "violations" or "findings"
 - Recommendations should say "Open System Settings > ..." not "Run this terminal command" (include terminal as secondary option for advanced users)
 - Severity labels: Critical, High, Medium, Low, Info
+
+## Auto-Update (Sparkle)
+
+Uses [Sparkle](https://sparkle-project.org/) (MIT) for auto-update. Key files:
+- `Info.plist` — `SUFeedURL` (appcast URL) and `SUPublicEDKey` (EdDSA public key)
+- `Harden/App/HardenApp.swift` — `SPUStandardUpdaterController` instance
+- `Harden/Views/Components/CheckForUpdatesView.swift` — "Check for Updates..." menu item
+- `Scripts/create-dmg.sh` — produces zip archive for Sparkle alongside the DMG
+
+Appcast feed: `https://subversivesoftware.org/updates/harden/appcast.xml`
+
+See [SUBVERSIVE_MACOS_ARCH.md](../SUBVERSIVE_MACOS_ARCH.md) for the shared Sparkle conventions.
 
 ## STIG Compliance
 

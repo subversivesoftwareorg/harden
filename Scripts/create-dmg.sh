@@ -175,6 +175,16 @@ if [ "$SKIP_NOTARIZE" = false ] && [ -n "$IDENTITY" ]; then
     fi
 fi
 
+# ── Sparkle update archive ───────────────────────────────────────
+echo "==> Creating Sparkle update archive..."
+ZIP_NAME="Harden-${VERSION}-b${NEW_BUILD}.zip"
+ZIP_PATH="$BUILD_DIR/$ZIP_NAME"
+ditto -c -k --keepParent "$APP_PATH" "$ZIP_PATH"
+if [ -n "$IDENTITY" ]; then
+    codesign --force --sign "$IDENTITY" --timestamp "$ZIP_PATH"
+fi
+echo "  Archive: $ZIP_PATH"
+
 # ── Cleanup ──────────────────────────────────────────────────────
 rm -rf "$STAGING_DIR"
 
@@ -190,6 +200,11 @@ fi
 
 echo ""
 echo "Build number $NEW_BUILD has been written to Info.plist."
+echo ""
+echo "Sparkle update steps:"
+echo "  1. Run: .build/artifacts/sparkle/Sparkle/bin/generate_appcast $BUILD_DIR"
+echo "  2. Copy $ZIP_NAME and appcast.xml to ../www/static/updates/harden/"
+echo "  3. Deploy the website: cd ../www && hugo && <deploy>"
 
 # ── Git tag ──────────────────────────────────────────────────────
 TAG="v${VERSION}-b${NEW_BUILD}"
