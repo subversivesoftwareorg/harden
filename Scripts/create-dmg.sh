@@ -194,36 +194,56 @@ if [ "$SKIP_NOTARIZE" = false ] && [ -n "$IDENTITY" ]; then
     fi
 fi
 
-# ── Sparkle update archive (for auto-update only, not manual install) ─
+# ── Sparkle update archive + appcast ────────────────────────────
 echo "==> Creating Sparkle update archive..."
+SPARKLE_DIR="$BUILD_DIR/sparkle"
+rm -rf "$SPARKLE_DIR"
+mkdir -p "$SPARKLE_DIR"
+
 ZIP_NAME="Harden-${VERSION}-b${NEW_BUILD}.zip"
-ZIP_PATH="$BUILD_DIR/$ZIP_NAME"
+ZIP_PATH="$SPARKLE_DIR/$ZIP_NAME"
 ditto -c -k --keepParent "$APP_PATH" "$ZIP_PATH"
-if [ -n "$IDENTITY" ]; then
-    codesign --force --sign "$IDENTITY" --timestamp "$ZIP_PATH"
-fi
 echo "  Archive: $ZIP_PATH"
+
+GENERATE_APPCAST="$PROJECT_DIR/.build/artifacts/sparkle/Sparkle/bin/generate_appcast"
+if [ -x "$GENERATE_APPCAST" ]; then
+    echo "==> Generating appcast..."
+    "$GENERATE_APPCAST" "$SPARKLE_DIR"
+    echo "  Appcast: $SPARKLE_DIR/appcast.xml"
+else
+    echo "WARNING: generate_appcast not found at $GENERATE_APPCAST"
+    echo "  Run 'swift package resolve' first, then re-run this script."
+fi
+
+# ── Stage to website ─────────────────────────────────────────────
+WWW_UPDATES="$PROJECT_DIR/../www/static/updates/harden"
+if [ -d "$PROJECT_DIR/../www" ]; then
+    echo "==> Staging to website..."
+    mkdir -p "$WWW_UPDATES"
+    cp -f "$SPARKLE_DIR/$ZIP_NAME" "$WWW_UPDATES/"
+    [ -f "$SPARKLE_DIR/appcast.xml" ] && cp -f "$SPARKLE_DIR/appcast.xml" "$WWW_UPDATES/"
+    cp -f "$DMG_PATH" "$WWW_UPDATES/"
+    echo "  Staged to: $WWW_UPDATES"
+    ls -lh "$WWW_UPDATES/"
+else
+    echo "  Website repo not found at ../www — skipping staging."
+    echo "  Manually copy $ZIP_NAME and appcast.xml to the website."
+fi
 
 # ── Cleanup ──────────────────────────────────────────────────────
 rm -rf "$STAGING_DIR"
 
 echo ""
-echo "Done! DMG created at:"
-echo "  $DMG_PATH"
-echo "  Version: $VERSION (build $NEW_BUILD)"
-echo "  Size: $(ls -lh "$DMG_PATH" | awk '{print $5}')"
-echo "  Architectures: $ARCHS"
+echo "Done!"
+echo "  DMG:      $DMG_PATH ($(ls -lh "$DMG_PATH" | awk '{print $5}'))"
+echo "  ZIP:      $ZIP_PATH (for Sparkle auto-update)"
+echo "  Version:  $VERSION (build $NEW_BUILD)"
+echo "  Arch:     $ARCHS"
 if [ -n "$IDENTITY" ]; then
-    echo "  Signed with: $IDENTITY"
+    echo "  Signed:   $IDENTITY"
 fi
-
 echo ""
 echo "Build number $NEW_BUILD has been written to Info.plist."
-echo ""
-echo "Sparkle update steps:"
-echo "  1. Run: .build/artifacts/sparkle/Sparkle/bin/generate_appcast $BUILD_DIR"
-echo "  2. Copy $ZIP_NAME and appcast.xml to ../www/static/updates/harden/"
-echo "  3. Deploy the website: cd ../www && hugo && <deploy>"
 
 # ── Git tag ──────────────────────────────────────────────────────
 TAG="v${VERSION}-b${NEW_BUILD}"
@@ -232,8 +252,11 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     git commit -m "Build $NEW_BUILD for v$VERSION distribution" 2>/dev/null || true
     git tag -a "$TAG" -m "Harden $VERSION build $NEW_BUILD"
     echo "  Tagged: $TAG"
-    echo ""
-    echo "Push with: git push && git push --tags"
+fi
+
+echo ""
+if [ -d "$WWW_UPDATES" ]; then
+    echo "Next: cd ../www && git add -A && git commit -m 'Harden $VERSION build $NEW_BUILD' && git push"
 else
-    echo "Not in a git repo — skipping tag."
+    echo "Push with: git push && git push --tags"
 fi
