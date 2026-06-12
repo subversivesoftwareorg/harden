@@ -233,6 +233,7 @@
 			);
 			name = Harden;
 			packageProductDependencies = (
+				G10000000000000000000001 /* Sparkle */,
 			);
 			productName = Harden;
 			productReference = B10000000000000000000015 /* Harden.app */;
@@ -265,6 +266,9 @@
 			productRefGroup = C1000000000000000000000C /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
+			packageReferences = (
+				H10000000000000000000001 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			targets = (
 				E10000000000000000000001 /* Harden */,
 			);
@@ -502,6 +506,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		H10000000000000000000001 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		G10000000000000000000001 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = H10000000000000000000001 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E10000000000000000000002 /* Project object */;
 }
