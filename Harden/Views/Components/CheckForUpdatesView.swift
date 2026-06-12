@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import Sparkle
 
 struct CheckForUpdatesView: View {
