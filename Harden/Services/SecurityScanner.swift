@@ -7,10 +7,12 @@ enum ShellCommand {
         let exitCode: Int32
     }
 
-    static func run(_ command: String) async -> Result {
+    static func run(_ command: String, timeout: TimeInterval = 10) async -> Result {
         await withCheckedContinuation { continuation in
             let process = Process()
             let pipe = Pipe()
+            let guard_ = ContinuationGuard(continuation)
+
             process.executableURL = URL(fileURLWithPath: "/bin/sh")
             process.arguments = ["-c", command]
             process.standardOutput = pipe
@@ -19,13 +21,35 @@ enum ShellCommand {
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 let output = String(data: data, encoding: .utf8)?
                     .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                continuation.resume(returning: Result(output: output, exitCode: proc.terminationStatus))
+                guard_.resume(with: Result(output: output, exitCode: proc.terminationStatus))
             }
             do {
                 try process.run()
+                DispatchQueue.global().asyncAfter(deadline: .now() + timeout) {
+                    guard process.isRunning else { return }
+                    process.terminate()
+                    guard_.resume(with: Result(output: "", exitCode: -1))
+                }
             } catch {
-                continuation.resume(returning: Result(output: "", exitCode: -1))
+                guard_.resume(with: Result(output: "", exitCode: -1))
             }
+        }
+    }
+
+    private final class ContinuationGuard: @unchecked Sendable {
+        private var continuation: CheckedContinuation<Result, Never>?
+        private let lock = NSLock()
+
+        init(_ continuation: CheckedContinuation<Result, Never>) {
+            self.continuation = continuation
+        }
+
+        func resume(with result: Result) {
+            lock.lock()
+            let cont = continuation
+            continuation = nil
+            lock.unlock()
+            cont?.resume(returning: result)
         }
     }
 }
