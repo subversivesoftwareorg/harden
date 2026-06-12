@@ -97,14 +97,33 @@ fi
 
 # ── Code signing ──────────────────────────────────────────────────
 if [ -n "$IDENTITY" ]; then
-    echo "==> Signing with: $IDENTITY"
+    echo "==> Signing embedded frameworks and helpers..."
+    SPARKLE_FW="$APP_PATH/Contents/Frameworks/Sparkle.framework"
+    if [ -d "$SPARKLE_FW" ]; then
+        # Sign XPC services (innermost first)
+        for xpc in "$SPARKLE_FW"/Versions/B/XPCServices/*.xpc; do
+            [ -d "$xpc" ] && codesign --force --options runtime --sign "$IDENTITY" --timestamp "$xpc"
+        done
+        # Sign helper apps
+        for app in "$SPARKLE_FW"/Versions/B/*.app; do
+            [ -d "$app" ] && codesign --force --options runtime --sign "$IDENTITY" --timestamp "$app"
+        done
+        # Sign standalone executables
+        for bin in "$SPARKLE_FW"/Versions/B/Autoupdate; do
+            [ -f "$bin" ] && codesign --force --options runtime --sign "$IDENTITY" --timestamp "$bin"
+        done
+        # Sign the framework itself
+        codesign --force --options runtime --sign "$IDENTITY" --timestamp "$SPARKLE_FW"
+    fi
+
+    echo "==> Signing app with: $IDENTITY"
     codesign --force --options runtime \
         --sign "$IDENTITY" \
         --timestamp \
         --entitlements "$PROJECT_DIR/Harden.entitlements" \
         "$APP_PATH"
     echo "==> Verifying signature..."
-    codesign --verify --verbose=2 "$APP_PATH"
+    codesign --verify --verbose=2 --deep "$APP_PATH"
     echo "    Signature OK"
 fi
 
