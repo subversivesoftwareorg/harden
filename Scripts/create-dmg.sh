@@ -245,18 +245,50 @@ fi
 echo ""
 echo "Build number $NEW_BUILD has been written to Info.plist."
 
-# ── Git tag ──────────────────────────────────────────────────────
+# ── Git tag + push ───────────────────────────────────────────────
 TAG="v${VERSION}-b${NEW_BUILD}"
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     git add "$PLIST"
     git commit -m "Build $NEW_BUILD for v$VERSION distribution" 2>/dev/null || true
     git tag -a "$TAG" -m "Harden $VERSION build $NEW_BUILD"
     echo "  Tagged: $TAG"
+    echo "==> Pushing to remote..."
+    git push && git push --tags
 fi
 
+# ── GitHub Release ───────────────────────────────────────────────
+if command -v gh >/dev/null 2>&1; then
+    echo "==> Creating GitHub release..."
+    PREV_TAG=$(git tag --sort=-v:refname | grep -v "^$TAG$" | head -1)
+    if [ -n "$PREV_TAG" ]; then
+        RELEASE_NOTES=$(git log --pretty=format:"- %s" "$PREV_TAG".."$TAG" -- . ':!Info.plist' | grep -v "^- Build [0-9]")
+    fi
+    if [ -z "$RELEASE_NOTES" ]; then
+        RELEASE_NOTES="Harden $VERSION build $NEW_BUILD"
+    fi
+
+    gh release create "$TAG" "$DMG_PATH" \
+        --title "Harden $VERSION (build $NEW_BUILD)" \
+        --notes "$(cat <<NOTES
+## What's New
+
+$RELEASE_NOTES
+
+## Install
+
+Download **$DMG_NAME**, open it, and drag Harden to your Applications folder.
+
+Existing users with auto-update enabled will receive this update automatically via Sparkle.
+NOTES
+)" \
+        && echo "  Release created: https://github.com/$(gh repo view --json nameWithOwner -q .nameWithOwner)/releases/tag/$TAG" \
+        || echo "  WARNING: GitHub release creation failed. Create manually with: gh release create $TAG $DMG_PATH"
+else
+    echo "  gh CLI not found — skipping GitHub release. Install with: brew install gh"
+fi
+
+# ── Website deploy reminder ──────────────────────────────────────
 echo ""
 if [ -d "$WWW_UPDATES" ]; then
     echo "Next: cd ../www && git add -A && git commit -m 'Harden $VERSION build $NEW_BUILD' && git push"
-else
-    echo "Push with: git push && git push --tags"
 fi
