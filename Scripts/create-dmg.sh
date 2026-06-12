@@ -215,19 +215,12 @@ else
     echo "  Run 'swift package resolve' first, then re-run this script."
 fi
 
-# ── Stage to website ─────────────────────────────────────────────
+# ── Stage appcast to website (binaries go to GitHub Releases) ────
 WWW_UPDATES="$PROJECT_DIR/../www/static/updates/harden"
 if [ -d "$PROJECT_DIR/../www" ]; then
-    echo "==> Staging to website..."
     mkdir -p "$WWW_UPDATES"
-    cp -f "$SPARKLE_DIR/$ZIP_NAME" "$WWW_UPDATES/"
     [ -f "$SPARKLE_DIR/appcast.xml" ] && cp -f "$SPARKLE_DIR/appcast.xml" "$WWW_UPDATES/"
-    cp -f "$DMG_PATH" "$WWW_UPDATES/"
-    echo "  Staged to: $WWW_UPDATES"
-    ls -lh "$WWW_UPDATES/"
-else
-    echo "  Website repo not found at ../www — skipping staging."
-    echo "  Manually copy $ZIP_NAME and appcast.xml to the website."
+    echo "  Appcast staged to: $WWW_UPDATES/appcast.xml"
 fi
 
 # ── Cleanup ──────────────────────────────────────────────────────
@@ -277,11 +270,20 @@ Download **$DMG_NAME**, open it, and drag Harden to your Applications folder.
 
 Existing users with auto-update enabled will receive this update automatically via Sparkle."
 
-    gh release create "$TAG" "$DMG_PATH" \
+    REPO_SLUG=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+
+    gh release create "$TAG" "$DMG_PATH" "$ZIP_PATH" \
         --title "Harden $VERSION (build $NEW_BUILD)" \
         --notes "$NOTES_BODY" \
-        && echo "  Release created: https://github.com/$(gh repo view --json nameWithOwner -q .nameWithOwner)/releases/tag/$TAG" \
-        || echo "  WARNING: GitHub release creation failed. Create manually with: gh release create $TAG $DMG_PATH"
+        && echo "  Release: https://github.com/$REPO_SLUG/releases/tag/$TAG" \
+        || echo "  WARNING: GitHub release creation failed."
+
+    # Rewrite appcast enclosure URL to point at GitHub Releases
+    GITHUB_ZIP_URL="https://github.com/$REPO_SLUG/releases/download/$TAG/$ZIP_NAME"
+    if [ -f "$WWW_UPDATES/appcast.xml" ]; then
+        sed -i '' "s|url=\"[^\"]*$ZIP_NAME\"|url=\"$GITHUB_ZIP_URL\"|" "$WWW_UPDATES/appcast.xml"
+        echo "  Appcast URL rewritten to: $GITHUB_ZIP_URL"
+    fi
 else
     echo "  gh CLI not found — skipping GitHub release. Install with: brew install gh"
 fi
