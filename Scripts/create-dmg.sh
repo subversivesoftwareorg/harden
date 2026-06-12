@@ -267,10 +267,7 @@ if command -v gh >/dev/null 2>&1; then
         RELEASE_NOTES="Harden $VERSION build $NEW_BUILD"
     fi
 
-    gh release create "$TAG" "$DMG_PATH" \
-        --title "Harden $VERSION (build $NEW_BUILD)" \
-        --notes "$(cat <<NOTES
-## What's New
+    NOTES_BODY="## What's New
 
 $RELEASE_NOTES
 
@@ -278,9 +275,11 @@ $RELEASE_NOTES
 
 Download **$DMG_NAME**, open it, and drag Harden to your Applications folder.
 
-Existing users with auto-update enabled will receive this update automatically via Sparkle.
-NOTES
-)" \
+Existing users with auto-update enabled will receive this update automatically via Sparkle."
+
+    gh release create "$TAG" "$DMG_PATH" \
+        --title "Harden $VERSION (build $NEW_BUILD)" \
+        --notes "$NOTES_BODY" \
         && echo "  Release created: https://github.com/$(gh repo view --json nameWithOwner -q .nameWithOwner)/releases/tag/$TAG" \
         || echo "  WARNING: GitHub release creation failed. Create manually with: gh release create $TAG $DMG_PATH"
 else
@@ -290,5 +289,5 @@ fi
 # ── Website deploy reminder ──────────────────────────────────────
 echo ""
 if [ -d "$WWW_UPDATES" ]; then
-    echo "Next: cd ../www && git add -A && git commit -m 'Harden $VERSION build $NEW_BUILD' && git push"
+    echo "Next: cd ../www && git add -A && git commit -m \"Harden $VERSION build $NEW_BUILD\" && git push"
 fi
