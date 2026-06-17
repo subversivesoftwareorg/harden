@@ -21,6 +21,7 @@ struct ComplianceTabView: View {
                 Menu {
                     Button("Export JSON Report") { exportReport(format: .json) }
                     Button("Export HTML Report") { exportReport(format: .html) }
+                    Button("Export CSV Report") { exportReport(format: .csv) }
                 } label: {
                     Label("Export", systemImage: "square.and.arrow.up")
                 }
@@ -58,6 +59,13 @@ struct ComplianceTabView: View {
             )
             contentType = .html
             fileExtension = "html"
+        case .csv:
+            data = ComplianceReportGenerator.generateCSV(
+                checks: store.checks,
+                device: store.device
+            )
+            contentType = .commaSeparatedText
+            fileExtension = "csv"
         }
 
         guard let data else { return }
@@ -73,6 +81,6 @@ struct ComplianceTabView: View {
     }
 
     enum ReportFormat {
-        case json, html
+        case json, html, csv
     }
 }

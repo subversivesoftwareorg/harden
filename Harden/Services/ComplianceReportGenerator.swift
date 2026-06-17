@@ -2,6 +2,42 @@ import Foundation
 
 enum ComplianceReportGenerator {
 
+    static func generateCSV(checks: [SecurityCheck], device: DeviceIdentity?) -> Data? {
+        var rows: [String] = []
+        rows.append("Check ID,Name,Category,Severity,Status,Details,Recommendation,STIG IDs,CIS IDs,Hardware UUID,Hostname")
+
+        let uuid = device?.hardwareUUID ?? ""
+        let host = device?.hostname ?? ""
+
+        for check in checks {
+            let stigIDs = check.stigReferences.map(\.id).joined(separator: "; ")
+            let cisIDs = check.cisReferences.map(\.id).joined(separator: "; ")
+            let row = [
+                check.id,
+                check.name,
+                check.category.rawValue,
+                check.severity.label,
+                check.status.rawValue,
+                check.details,
+                check.recommendation,
+                stigIDs,
+                cisIDs,
+                uuid,
+                host,
+            ].map { csvEscape($0) }.joined(separator: ",")
+            rows.append(row)
+        }
+
+        return rows.joined(separator: "\n").data(using: .utf8)
+    }
+
+    private static func csvEscape(_ field: String) -> String {
+        if field.contains(",") || field.contains("\"") || field.contains("\n") {
+            return "\"" + field.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        }
+        return field
+    }
+
     static func generateHTML(checks: [SecurityCheck], score: Int, scanDate: Date, device: DeviceIdentity?) -> Data? {
         let dateStr = scanDate.formatted(date: .long, time: .shortened)
         let hostname = device?.hostname ?? ProcessInfo.processInfo.hostName
