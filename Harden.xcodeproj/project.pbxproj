@@ -40,6 +40,10 @@
 		A10000000000000000000020 /* CISReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* CISReportView.swift */; };
 		A10000000000000000000021 /* ComplianceTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* ComplianceTabView.swift */; };
 		A10000000000000000000022 /* ComplianceReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* ComplianceReportGenerator.swift */; };
+		A10000000000000000000023 /* DeviceIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000023 /* DeviceIdentity.swift */; };
+		A10000000000000000000024 /* AgentMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000024 /* AgentMode.swift */; };
+		A10000000000000000000025 /* LaunchAgentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000025 /* LaunchAgentManager.swift */; };
+		A10000000000000000000026 /* IntegrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000026 /* IntegrationView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -77,6 +81,10 @@
 		B10000000000000000000020 /* CISReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CISReportView.swift; sourceTree = "<group>"; };
 		B10000000000000000000021 /* ComplianceTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplianceTabView.swift; sourceTree = "<group>"; };
 		B10000000000000000000022 /* ComplianceReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplianceReportGenerator.swift; sourceTree = "<group>"; };
+		B10000000000000000000023 /* DeviceIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdentity.swift; sourceTree = "<group>"; };
+		B10000000000000000000024 /* AgentMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentMode.swift; sourceTree = "<group>"; };
+		B10000000000000000000025 /* LaunchAgentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAgentManager.swift; sourceTree = "<group>"; };
+		B10000000000000000000026 /* IntegrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrationView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -126,6 +134,7 @@
 				B10000000000000000000004 /* CheckCategory.swift */,
 				B10000000000000000000019 /* Remediation.swift */,
 				B1000000000000000000001E /* CISMapping.swift */,
+				B10000000000000000000023 /* DeviceIdentity.swift */,
 				B10000000000000000000003 /* SecurityCheck.swift */,
 				B1000000000000000000001B /* STIGMapping.swift */,
 			);
@@ -135,7 +144,9 @@
 		C10000000000000000000004 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				B10000000000000000000024 /* AgentMode.swift */,
 				B10000000000000000000022 /* ComplianceReportGenerator.swift */,
+				B10000000000000000000025 /* LaunchAgentManager.swift */,
 				B1000000000000000000001A /* RemediationRunner.swift */,
 				B10000000000000000000005 /* SecurityScanner.swift */,
 				C10000000000000000000005 /* Checkers */,
@@ -170,6 +181,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000018 /* HelpView.swift */,
+				B10000000000000000000026 /* IntegrationView.swift */,
 				B1000000000000000000000E /* MainTabView.swift */,
 				B10000000000000000000017 /* SettingsView.swift */,
 				C1000000000000000000000E /* Components */,
@@ -348,6 +360,10 @@
 				A10000000000000000000020 /* CISReportView.swift in Sources */,
 				A10000000000000000000021 /* ComplianceTabView.swift in Sources */,
 				A10000000000000000000022 /* ComplianceReportGenerator.swift in Sources */,
+				A10000000000000000000023 /* DeviceIdentity.swift in Sources */,
+				A10000000000000000000024 /* AgentMode.swift in Sources */,
+				A10000000000000000000025 /* LaunchAgentManager.swift in Sources */,
+				A10000000000000000000026 /* IntegrationView.swift in Sources */,
 				A10000000000000000000009 /* SystemChecker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

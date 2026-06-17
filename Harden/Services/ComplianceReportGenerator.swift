@@ -205,7 +205,7 @@ enum ComplianceReportGenerator {
         </body></html>
         """
 
-        return html.data(using: .utf8)
+        return html.data(using: String.Encoding.utf8)
     }
 
     // MARK: - Helpers
