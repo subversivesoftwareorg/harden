@@ -71,6 +71,12 @@ struct Remediation {
             requiresSudo: true,
             confirmation: "This will synchronize your Mac's clock with Apple's time servers."
         ),
+        "system.rootdisabled": Remediation(
+            label: "Disable Root Account",
+            command: "dscl . -create /Users/root UserShell /usr/bin/false",
+            requiresSudo: true,
+            confirmation: "This will disable the root account, preventing direct root login."
+        ),
 
         // ── Sharing ─────────────────────────────────────────────────
         "sharing.remotelogin": Remediation(
@@ -90,6 +96,30 @@ struct Remediation {
             command: "defaults write com.apple.NetworkBrowser DisableAirDrop -bool true",
             requiresSudo: false,
             confirmation: "This will disable AirDrop so nearby devices cannot send you files."
+        ),
+        "sharing.remoteappleevents": Remediation(
+            label: "Disable Remote Apple Events",
+            command: "systemsetup -setremoteappleevents off",
+            requiresSudo: true,
+            confirmation: "This will prevent other computers from sending Apple Events to your Mac."
+        ),
+        "sharing.mediasharing": Remediation(
+            label: "Disable Media Sharing",
+            command: "defaults write com.apple.amp.mediasharingd home-sharing-enabled -bool false",
+            requiresSudo: false,
+            confirmation: "This will stop sharing your media libraries on the network."
+        ),
+        "sharing.airplayreceiver": Remediation(
+            label: "Disable AirPlay Receiver",
+            command: "defaults write com.apple.controlcenter AirplayRecieverEnabled -bool false",
+            requiresSudo: false,
+            confirmation: "This will prevent other devices from streaming to this Mac."
+        ),
+        "sharing.contentcaching": Remediation(
+            label: "Disable Content Caching",
+            command: "AssetCacheManagerUtil deactivate 2>/dev/null || defaults write /Library/Preferences/com.apple.AssetCache.plist Activated -bool false",
+            requiresSudo: true,
+            confirmation: "This will stop caching Apple content on this Mac."
         ),
 
         // ── Authentication ──────────────────────────────────────────
@@ -129,6 +159,30 @@ struct Remediation {
             requiresSudo: false,
             confirmation: "This will set your home directory to owner + group read only, preventing other users from browsing your files."
         ),
+        "auth.filevaultautologin": Remediation(
+            label: "Disable FileVault Auto-Login",
+            command: "defaults write com.apple.loginwindow DisableFDEAutoLogin -bool true",
+            requiresSudo: true,
+            confirmation: "This will require password entry at the FileVault pre-boot screen."
+        ),
+        "auth.consolelogin": Remediation(
+            label: "Disable Console Login",
+            command: "defaults write /Library/Preferences/com.apple.loginwindow DisableConsoleAccess -bool true",
+            requiresSudo: true,
+            confirmation: "This will prevent switching to a text console at the login window."
+        ),
+        "auth.passwordhints": Remediation(
+            label: "Disable Password Hints",
+            command: "defaults write /Library/Preferences/com.apple.loginwindow RetriesUntilHint -int 0",
+            requiresSudo: true,
+            confirmation: "This will prevent password hints from appearing at the login window."
+        ),
+        "auth.guest.smb": Remediation(
+            label: "Disable Guest SMB Access",
+            command: "defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server AllowGuestAccess -bool false",
+            requiresSudo: true,
+            confirmation: "This will prevent unauthenticated users from accessing shared folders."
+        ),
 
         // ── Network ─────────────────────────────────────────────────
         "network.wakeonlan": Remediation(
@@ -143,6 +197,12 @@ struct Remediation {
             requiresSudo: true,
             confirmation: "This will disable IP forwarding, ignore ICMP redirects, and enable TCP/UDP blackhole mode. These changes persist until restart."
         ),
+        "network.powernap": Remediation(
+            label: "Disable Power Nap",
+            command: "pmset -a powernap 0",
+            requiresSudo: true,
+            confirmation: "This will stop your Mac from waking periodically to check email and updates."
+        ),
 
         // ── Privacy ─────────────────────────────────────────────────
         "privacy.siri": Remediation(
@@ -156,6 +216,38 @@ struct Remediation {
             command: "defaults write com.apple.Safari SuppressSearchSuggestions -bool true",
             requiresSudo: false,
             confirmation: "This will stop Safari from sending partial search queries to Apple as you type."
+        ),
+        "privacy.advertising": Remediation(
+            label: "Disable Personalized Ads",
+            command: "defaults write com.apple.AdLib allowApplePersonalizedAdvertising -bool false",
+            requiresSudo: false,
+            confirmation: "This will opt out of Apple's personalized advertising."
+        ),
+        "privacy.analytics": Remediation(
+            label: "Disable Diagnostics Sharing",
+            command: "defaults write '/Library/Application Support/CrashReporter/DiagnosticMessagesHistory.plist' AutoSubmit -bool false",
+            requiresSudo: true,
+            confirmation: "This will stop sharing diagnostic and usage data with Apple."
+        ),
+
+        // ── Applications ───────────────────────────────────────────
+        "apps.terminal.securekeyboard": Remediation(
+            label: "Enable Secure Keyboard Entry",
+            command: "defaults write com.apple.Terminal SecureKeyboardEntry -bool true",
+            requiresSudo: false,
+            confirmation: "This will prevent other applications from intercepting keystrokes in Terminal."
+        ),
+        "apps.fileextensions": Remediation(
+            label: "Show All File Extensions",
+            command: "defaults write NSGlobalDomain AppleShowAllExtensions -bool true",
+            requiresSudo: false,
+            confirmation: "This will show filename extensions for all files in Finder."
+        ),
+        "apps.safari.autoopen": Remediation(
+            label: "Disable Safari Auto-Open",
+            command: "defaults write com.apple.Safari AutoOpenSafeDownloads -bool false",
+            requiresSudo: false,
+            confirmation: "This will stop Safari from automatically opening downloaded files."
         ),
     ]
 }
