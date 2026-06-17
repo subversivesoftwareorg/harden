@@ -17,7 +17,7 @@ set -e
 
 APP_NAME="Harden"
 BUNDLE_ID="com.subversivesoftware.Harden"
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
