@@ -9,7 +9,11 @@ struct NetworkChecker {
         async let wakeOnNetworkCheck = checkWakeOnNetwork()
         async let sysctlCheck = checkSysctlHardening()
         async let promiscCheck = checkPromiscuousInterface()
-        return await [dnsCheck, wifiCheck, openWifiCheck, wakeOnNetworkCheck, sysctlCheck, promiscCheck]
+        async let httpdCheck = checkHTTPServer()
+        async let nfsdCheck = checkNFSServer()
+        async let powerNapCheck = checkPowerNap()
+        return await [dnsCheck, wifiCheck, openWifiCheck, wakeOnNetworkCheck, sysctlCheck, promiscCheck,
+                      httpdCheck, nfsdCheck, powerNapCheck]
     }
 
     private func checkDNS() async -> SecurityCheck {
@@ -158,6 +162,71 @@ struct NetworkChecker {
             check.status = .warning
             check.details = "\(failures.count) of \(params.count) parameters need attention: \(failures.joined(separator: "; "))."
             check.recommendation = "These can be set via sysctl, e.g.: sudo sysctl -w net.inet.ip.forwarding=0. For persistence, add entries to /etc/sysctl.conf."
+        }
+        return check
+    }
+
+    private func checkHTTPServer() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "network.httpd",
+            name: "HTTP Server",
+            description: "The built-in Apache HTTP server should not be running unless explicitly needed.",
+            category: .network,
+            severity: .medium
+        )
+        let result = await ShellCommand.run("launchctl list 2>/dev/null | grep -c 'org.apache.httpd'")
+        let count = Int(result.output) ?? 0
+        if count == 0 {
+            check.status = .pass
+            check.details = "The built-in HTTP server is not running."
+        } else {
+            check.status = .warning
+            check.details = "The built-in Apache HTTP server is running."
+            check.recommendation = "If not needed, disable with: sudo launchctl unload -w /System/Library/LaunchDaemons/org.apache.httpd.plist"
+        }
+        return check
+    }
+
+    private func checkNFSServer() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "network.nfsd",
+            name: "NFS Server",
+            description: "The NFS server should not be running as it exposes the filesystem over the network.",
+            category: .network,
+            severity: .medium
+        )
+        let result = await ShellCommand.run("launchctl list 2>/dev/null | grep -c 'com.apple.nfsd'")
+        let count = Int(result.output) ?? 0
+        if count == 0 {
+            check.status = .pass
+            check.details = "The NFS server is not running."
+        } else {
+            check.status = .warning
+            check.details = "The NFS server is running, exposing the filesystem over the network."
+            check.recommendation = "If not needed, disable with: sudo nfsd stop && sudo launchctl unload -w /System/Library/LaunchDaemons/com.apple.nfsd.plist"
+        }
+        return check
+    }
+
+    private func checkPowerNap() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "network.powernap",
+            name: "Power Nap",
+            description: "Power Nap wakes the Mac periodically to check email, updates, and iCloud, which expands the attack surface.",
+            category: .network,
+            severity: .low
+        )
+        let result = await ShellCommand.run("pmset -g 2>/dev/null | grep ' powernap' | awk '{print $2}'")
+        if result.output == "0" {
+            check.status = .pass
+            check.details = "Power Nap is disabled."
+        } else if result.output == "1" {
+            check.status = .info
+            check.details = "Power Nap is enabled. Your Mac wakes periodically for background tasks."
+            check.recommendation = "If not needed, disable in System Settings > Energy (or Battery) > Power Nap."
+        } else {
+            check.status = .info
+            check.details = "Could not determine Power Nap status."
         }
         return check
     }

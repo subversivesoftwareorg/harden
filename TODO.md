@@ -2,9 +2,9 @@
 
 ## Current State
 
-64 security checks across 7 categories: Firewall (5), Encryption (2), System Protection (20), Sharing (14), Authentication (12), Network (6), Privacy (5). 39 checks are mapped to 47 unique DISA STIG rules (V1R7, verified).
+93 security checks across 8 categories: Firewall (5), Encryption (2), System Protection (20), Sharing (14), Authentication (16), Network (6), Privacy (5), Applications (6). 39 checks mapped to 47 unique DISA STIG rules (V1R7, verified). 72 CIS rules mapped (CIS Apple macOS 15.0 Sequoia Benchmark v1.1.0).
 
-The app builds, runs, and scans. Dashboard, Action Items, and All Checks tabs are functional. All three phases of checks are complete.
+The app builds, runs, and scans. Dashboard, Action Items, All Checks, and CIS Report tabs are functional. All five phases of checks are complete.
 
 ---
 
@@ -134,6 +134,45 @@ Ground existing and new checks in the DISA Security Technical Implementation Gui
 - [x] STIG mapping tests (validity, coverage, no duplicates)
 
 **Phase 4 total: 12 new checks (52 → 64), 39 checks mapped to 47 unique STIG rules (V1R7, verified) — COMPLETE**
+
+---
+
+## Phase 5 — CIS Benchmark Integration
+
+Map Harden checks to the CIS Apple macOS 15.0 Sequoia Benchmark (v1.1.0), add new checks for CIS-specific rules, and provide a dedicated CIS compliance reporting view.
+
+### Model & Infrastructure
+- [x] `CISReference` struct (rule, title, level)
+- [x] `cisReferences` property on `SecurityCheck`
+- [x] `CISMapping.swift` central catalog (72 CIS rules mapped across 93 checks)
+- [x] Scanner enrichment — CIS refs applied after check collection alongside STIG refs
+- [x] JSON export includes CIS references
+- [x] HTML compliance report export (CIS-organized, printable)
+
+### New CIS Checks (29)
+- [x] `auth.sudo.touchid` — Touch ID for sudo authentication (CIS 5.11)
+- [x] `auth.sudo.timeout` — Sudo timeout configuration (CIS 5.12)
+- [x] `auth.failedlogin.banner` — Login banner presence (CIS 5.13)
+- [x] `system.auditretention` — Audit log retention policy (CIS 3.5)
+- [x] `applications.safariautofill` — Safari auto-fill for contacts/credit cards (CIS 2.7.1)
+- [x] `applications.safariopensafe` — Safari open safe files after downloading (CIS 2.7.2)
+- [x] `applications.safarijavascript` — Safari show full website address (CIS 2.7.3)
+- [x] `applications.universalcontrol` — Universal Control disabled (CIS 2.7.4)
+- [x] `applications.xcode` — Xcode command-line tools security
+- [x] `applications.homebrew` — Homebrew package audit
+- [x] Additional authentication, sharing, and network checks aligned to CIS sections 4-6
+
+### Views
+- [x] `CISReportView.swift` — Dedicated CIS compliance dashboard organized by CIS section
+- [x] Level 1 / Level 2 profile indicators on each rule
+- [x] Section-level pass/fail/warning summaries
+- [x] HTML export button for printable compliance reports
+
+### Documentation
+- [x] `docs/CIS.md` — Full mapping, coverage analysis, licensing, attribution
+- [x] CIS mapping tests (validity, coverage, no duplicates)
+
+**Phase 5 total: 29 new checks (64 → 93), 72 CIS rules mapped, CIS Report view, HTML/JSON compliance export — COMPLETE**
 
 ---
 

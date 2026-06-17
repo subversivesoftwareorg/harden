@@ -6,6 +6,12 @@ struct STIGReference: Codable, Identifiable {
     let severity: String
 }
 
+struct CISReference: Codable, Identifiable {
+    let id: String
+    let title: String
+    let level: String
+}
+
 enum CheckStatus: String, Codable {
     case pass
     case fail
@@ -56,6 +62,7 @@ struct SecurityCheck: Identifiable {
     var details: String = ""
     var recommendation: String = ""
     var stigReferences: [STIGReference] = []
+    var cisReferences: [CISReference] = []
 
     /// Deep link to the relevant System Settings pane, if available.
     var settingsURL: URL? {

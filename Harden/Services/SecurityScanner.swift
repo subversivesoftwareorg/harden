@@ -71,13 +71,15 @@ final class SecurityScanner {
         async let authChecks = AuthenticationChecker().runChecks()
         async let networkChecks = NetworkChecker().runChecks()
         async let privacyChecks = PrivacyChecker().runChecks()
+        async let appsChecks = ApplicationsChecker().runChecks()
 
         let allChecks = await firewallChecks + encryptionChecks + systemChecks
-            + sharingChecks + authChecks + networkChecks + privacyChecks
+            + sharingChecks + authChecks + networkChecks + privacyChecks + appsChecks
 
         return allChecks.map { check in
             var enriched = check
             enriched.stigReferences = STIGMapping.catalog[check.id] ?? []
+            enriched.cisReferences = CISMapping.catalog[check.id] ?? []
             return enriched
         }
     }

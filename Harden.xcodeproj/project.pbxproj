@@ -35,6 +35,11 @@
 		A1000000000000000000001B /* STIGMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* STIGMapping.swift */; };
 		A1000000000000000000001C /* CheckForUpdatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001C /* CheckForUpdatesView.swift */; };
 		A1000000000000000000001D /* STIGReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001D /* STIGReportView.swift */; };
+		A1000000000000000000001E /* CISMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001E /* CISMapping.swift */; };
+		A1000000000000000000001F /* ApplicationsChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001F /* ApplicationsChecker.swift */; };
+		A10000000000000000000020 /* CISReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* CISReportView.swift */; };
+		A10000000000000000000021 /* ComplianceTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* ComplianceTabView.swift */; };
+		A10000000000000000000022 /* ComplianceReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* ComplianceReportGenerator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -67,6 +72,11 @@
 		B1000000000000000000001B /* STIGMapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STIGMapping.swift; sourceTree = "<group>"; };
 		B1000000000000000000001C /* CheckForUpdatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckForUpdatesView.swift; sourceTree = "<group>"; };
 		B1000000000000000000001D /* STIGReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STIGReportView.swift; sourceTree = "<group>"; };
+		B1000000000000000000001E /* CISMapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CISMapping.swift; sourceTree = "<group>"; };
+		B1000000000000000000001F /* ApplicationsChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationsChecker.swift; sourceTree = "<group>"; };
+		B10000000000000000000020 /* CISReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CISReportView.swift; sourceTree = "<group>"; };
+		B10000000000000000000021 /* ComplianceTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplianceTabView.swift; sourceTree = "<group>"; };
+		B10000000000000000000022 /* ComplianceReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplianceReportGenerator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,6 +125,7 @@
 			children = (
 				B10000000000000000000004 /* CheckCategory.swift */,
 				B10000000000000000000019 /* Remediation.swift */,
+				B1000000000000000000001E /* CISMapping.swift */,
 				B10000000000000000000003 /* SecurityCheck.swift */,
 				B1000000000000000000001B /* STIGMapping.swift */,
 			);
@@ -124,6 +135,7 @@
 		C10000000000000000000004 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				B10000000000000000000022 /* ComplianceReportGenerator.swift */,
 				B1000000000000000000001A /* RemediationRunner.swift */,
 				B10000000000000000000005 /* SecurityScanner.swift */,
 				C10000000000000000000005 /* Checkers */,
@@ -134,6 +146,7 @@
 		C10000000000000000000005 /* Checkers */ = {
 			isa = PBXGroup;
 			children = (
+				B1000000000000000000001F /* ApplicationsChecker.swift */,
 				B1000000000000000000000A /* AuthenticationChecker.swift */,
 				B10000000000000000000007 /* EncryptionChecker.swift */,
 				B10000000000000000000006 /* FirewallChecker.swift */,
@@ -206,6 +219,8 @@
 		C1000000000000000000000F /* Compliance */ = {
 			isa = PBXGroup;
 			children = (
+				B10000000000000000000020 /* CISReportView.swift */,
+				B10000000000000000000021 /* ComplianceTabView.swift */,
 				B1000000000000000000001D /* STIGReportView.swift */,
 			);
 			path = Compliance;
@@ -328,6 +343,11 @@
 				A1000000000000000000001B /* STIGMapping.swift in Sources */,
 				A1000000000000000000001C /* CheckForUpdatesView.swift in Sources */,
 				A1000000000000000000001D /* STIGReportView.swift in Sources */,
+				A1000000000000000000001E /* CISMapping.swift in Sources */,
+				A1000000000000000000001F /* ApplicationsChecker.swift in Sources */,
+				A10000000000000000000020 /* CISReportView.swift in Sources */,
+				A10000000000000000000021 /* ComplianceTabView.swift in Sources */,
+				A10000000000000000000022 /* ComplianceReportGenerator.swift in Sources */,
 				A10000000000000000000009 /* SystemChecker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

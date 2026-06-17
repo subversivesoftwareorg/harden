@@ -33,7 +33,7 @@ DISA classifies STIG rules into three severity categories:
 
 ## Coverage Summary
 
-- **39 of 64 checks** are mapped to at least one STIG rule
+- **39 of 93 checks** are mapped to at least one STIG rule
 - **47 unique STIG rule IDs** covered across those 39 checks
 - **8 CAT I (High)** references across system integrity, encryption, authentication, sharing, and SSH
 - **42 CAT II (Medium)** references across all categories

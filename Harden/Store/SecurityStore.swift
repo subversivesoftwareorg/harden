@@ -188,7 +188,8 @@ final class SecurityStore {
                 id: check.id, name: check.name, category: check.category.rawValue,
                 severity: check.severity.label, status: check.status.rawValue,
                 details: check.details, recommendation: check.recommendation,
-                stigReferences: check.stigReferences
+                stigReferences: check.stigReferences,
+                cisReferences: check.cisReferences
             )
         }
         let wrapper = ExportWrapper(
@@ -255,6 +256,7 @@ struct ExportedCheck: Codable {
     let details: String
     let recommendation: String
     let stigReferences: [STIGReference]
+    let cisReferences: [CISReference]
 }
 
 struct ExportWrapper: Codable {

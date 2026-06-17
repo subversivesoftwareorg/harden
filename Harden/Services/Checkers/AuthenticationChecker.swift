@@ -15,11 +15,16 @@ struct AuthenticationChecker {
         async let hotCornersCheck = checkHotCorners()
         async let consoleLoginCheck = checkConsoleLogin()
         async let appleWatchCheck = checkAppleWatchUnlock()
+        async let guestSMBCheck = checkGuestSMBAccess()
+        async let passwordHintsCheck = checkPasswordHints()
+        async let guestHomeFolderCheck = checkGuestHomeFolder()
+        async let systemPrefsPasswordCheck = checkSystemPrefsPassword()
         return await [
             autoLoginCheck, passwordAfterSleepCheck, guestAccountCheck,
             lockDelayCheck, idleTimeoutCheck, loginWindowCheck, homeDirCheck,
             passwordPolicyCheck,
             fdeAutoLoginCheck, hotCornersCheck, consoleLoginCheck, appleWatchCheck,
+            guestSMBCheck, passwordHintsCheck, guestHomeFolderCheck, systemPrefsPasswordCheck,
         ]
     }
 
@@ -299,6 +304,92 @@ struct AuthenticationChecker {
         } else {
             check.status = .info
             check.details = "Apple Watch auto-unlock uses the system default. Check System Settings > Touch ID & Password."
+        }
+        return check
+    }
+
+    private func checkGuestSMBAccess() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "auth.guest.smb",
+            name: "Guest SMB Share Access",
+            description: "Guest access to file shares allows unauthenticated users to access shared folders.",
+            category: .authentication,
+            severity: .medium
+        )
+        let result = await ShellCommand.run("defaults read /Library/Preferences/SystemConfiguration/com.apple.smb.server AllowGuestAccess 2>/dev/null")
+        if result.output == "1" || result.output.lowercased() == "true" {
+            check.status = .warning
+            check.details = "Guest access to SMB file shares is enabled."
+            check.recommendation = "Disable guest SMB access with: sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server AllowGuestAccess -bool false"
+        } else {
+            check.status = .pass
+            check.details = "Guest access to SMB file shares is disabled."
+        }
+        return check
+    }
+
+    private func checkPasswordHints() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "auth.passwordhints",
+            name: "Login Window Password Hints",
+            description: "Password hints visible at the login window can help an attacker guess passwords.",
+            category: .authentication,
+            severity: .low
+        )
+        let result = await ShellCommand.run("defaults read /Library/Preferences/com.apple.loginwindow RetriesUntilHint 2>/dev/null")
+        if let retries = Int(result.output) {
+            if retries == 0 {
+                check.status = .pass
+                check.details = "Password hints are disabled at the login window."
+            } else {
+                check.status = .warning
+                check.details = "Password hints are shown after \(retries) failed login attempt\(retries == 1 ? "" : "s")."
+                check.recommendation = "Disable password hints with: sudo defaults write /Library/Preferences/com.apple.loginwindow RetriesUntilHint -int 0"
+            }
+        } else {
+            check.status = .pass
+            check.details = "Password hints appear to be disabled (default)."
+        }
+        return check
+    }
+
+    private func checkGuestHomeFolder() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "auth.guest.homefolder",
+            name: "Guest Home Folder",
+            description: "The guest home folder should be removed when the guest account is disabled to prevent data persistence.",
+            category: .authentication,
+            severity: .low
+        )
+        let result = await ShellCommand.run("ls -d /Users/Guest 2>/dev/null")
+        if result.exitCode != 0 || result.output.isEmpty {
+            check.status = .pass
+            check.details = "Guest home folder does not exist."
+        } else {
+            check.status = .info
+            check.details = "Guest home folder exists at /Users/Guest."
+            check.recommendation = "If the guest account is disabled, remove the folder with: sudo rm -rf /Users/Guest"
+        }
+        return check
+    }
+
+    private func checkSystemPrefsPassword() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "auth.systemprefs.password",
+            name: "System Settings Password",
+            description: "Changing system-wide preferences should require an administrator password.",
+            category: .authentication,
+            severity: .medium
+        )
+        let result = await ShellCommand.run("security authorizationdb read system.preferences 2>/dev/null | grep -c 'authenticate-admin-nonshared'")
+        let count = Int(result.output) ?? 0
+        if count > 0 {
+            check.status = .pass
+            check.details = "An administrator password is required to change system-wide preferences."
+        } else {
+            check.status = .warning
+            check.details = "System-wide preferences may not require an administrator password."
+            check.recommendation = "Open System Settings > Privacy & Security and ensure 'Require administrator password to access system-wide preferences' is enabled."
         }
         return check
     }

@@ -8,6 +8,7 @@ enum CheckCategory: String, CaseIterable, Identifiable {
     case authentication = "Authentication"
     case network = "Network"
     case privacy = "Privacy"
+    case applications = "Applications"
 
     var id: String { rawValue }
 
@@ -20,6 +21,7 @@ enum CheckCategory: String, CaseIterable, Identifiable {
         case .authentication: "person.badge.key.fill"
         case .network: "network"
         case .privacy: "eye.slash.fill"
+        case .applications: "app.badge.checkmark"
         }
     }
 
@@ -32,6 +34,7 @@ enum CheckCategory: String, CaseIterable, Identifiable {
         case .authentication: .red
         case .network: .cyan
         case .privacy: .indigo
+        case .applications: .mint
         }
     }
 }

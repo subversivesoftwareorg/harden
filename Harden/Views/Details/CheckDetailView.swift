@@ -88,6 +88,7 @@ struct CheckDetailView: View {
                 || $0.description.lowercased().contains(query)
                 || $0.details.lowercased().contains(query)
                 || $0.stigReferences.contains { $0.id.lowercased().contains(query) }
+                || $0.cisReferences.contains { $0.id.lowercased().contains(query) }
             }
         }
         return result
@@ -145,6 +146,16 @@ struct CheckDetailView: View {
                         .foregroundStyle(stigColor(stig.severity))
                         .clipShape(RoundedRectangle(cornerRadius: 3))
                         .help("\(stig.title) (\(stig.severity))")
+                }
+                ForEach(check.cisReferences) { cis in
+                    Text("CIS \(cis.id)")
+                        .font(.system(size: 9, design: .monospaced))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Color.teal.opacity(0.15))
+                        .foregroundStyle(.teal)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        .help("\(cis.title) (\(cis.level))")
                 }
                 Text(check.severity.label)
                     .font(.caption2)

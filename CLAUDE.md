@@ -26,9 +26,10 @@ Harden/
     HardenApp.swift              # @main entry, About panel menu command
     AppDelegate.swift            # Standard About panel
   Models/
-    SecurityCheck.swift          # SecurityCheck struct, STIGReference, CheckStatus, CheckSeverity
-    CheckCategory.swift          # CheckCategory enum (7 categories with icons/colors)
+    SecurityCheck.swift          # SecurityCheck struct, STIGReference, CISReference, CheckStatus, CheckSeverity
+    CheckCategory.swift          # CheckCategory enum (8 categories with icons/colors)
     STIGMapping.swift            # DISA STIG check-ID-to-rule catalog
+    CISMapping.swift             # CIS Benchmark check-ID-to-rule catalog
     Remediation.swift            # Remediation commands keyed by check ID
   Services/
     SecurityScanner.swift        # Orchestrator: runs all checkers in parallel, ShellCommand helper
@@ -40,6 +41,7 @@ Harden/
       AuthenticationChecker.swift # Auto-login, password after sleep, guest account, lock delay
       NetworkChecker.swift       # DNS config, Wi-Fi security
       PrivacyChecker.swift       # Analytics sharing, Safari suggestions
+      ApplicationsChecker.swift  # Safari settings, Universal Control, Xcode, Homebrew
   Store/
     SecurityStore.swift          # Main state: checks[], score, actionItems, snooze persistence
   Views/
@@ -62,7 +64,7 @@ HardenTests/
 
 ### Security Checks
 
-Each checker is a struct with a `runChecks() async -> [SecurityCheck]` method. Checks run real macOS shell commands via `ShellCommand.run()`, which wraps `Process` in async/await. The `SecurityScanner` orchestrator runs all 7 checkers in parallel with `async let`.
+Each checker is a struct with a `runChecks() async -> [SecurityCheck]` method. Checks run real macOS shell commands via `ShellCommand.run()`, which wraps `Process` in async/await. The `SecurityScanner` orchestrator runs all 8 checkers in parallel with `async let`.
 
 Commands used include `defaults read`, `fdesetup status`, `csrutil status`, `spctl --status`, `socketfilterfw`, `launchctl list`, `systemsetup`, `networksetup`, `cupsctl`, and the `airport` utility.
 
@@ -123,7 +125,11 @@ See [SUBVERSIVE_MACOS_ARCH.md](../SUBVERSIVE_MACOS_ARCH.md) for the shared Spark
 
 ## STIG Compliance
 
-39 of 64 checks are mapped to 47 unique rules from the DISA STIG for Apple macOS 15 Sequoia (V1R7). All STIG IDs verified against stigaview.com. STIG IDs appear as color-coded badges in the All Checks view and are included in JSON exports. See [docs/STIG.md](docs/STIG.md) for the full mapping, coverage analysis, and source attribution.
+39 of 93 checks are mapped to 47 unique rules from the DISA STIG for Apple macOS 15 Sequoia (V1R7). All STIG IDs verified against stigaview.com. STIG IDs appear as color-coded badges in the All Checks view and are included in JSON exports. See [docs/STIG.md](docs/STIG.md) for the full mapping, coverage analysis, and source attribution.
+
+## CIS Benchmark Compliance
+
+72 CIS rules from the CIS Apple macOS 15.0 Sequoia Benchmark (v1.1.0) are mapped across 93 Harden checks. The CIS Report view provides a dedicated compliance dashboard organized by CIS section, with Level 1/Level 2 profile indicators. Scan results can be exported as HTML compliance reports and JSON for integration with other tools. See [docs/CIS.md](docs/CIS.md) for the full mapping, coverage analysis, and licensing details.
 
 ## Roadmap
 

@@ -111,3 +111,48 @@ struct STIGMappingTests {
         #expect(check.stigReferences.isEmpty)
     }
 }
+
+@Suite("CIS Mapping Tests")
+struct CISMappingTests {
+
+    @Test("Catalog is not empty")
+    func catalogNotEmpty() {
+        #expect(!CISMapping.catalog.isEmpty)
+    }
+
+    @Test("All CIS references have valid fields")
+    func referenceFields() {
+        for (checkID, refs) in CISMapping.catalog {
+            #expect(!checkID.isEmpty)
+            for ref in refs {
+                #expect(!ref.id.isEmpty, "CIS ID empty for check \(checkID)")
+                #expect(!ref.title.isEmpty, "Title empty for CIS \(ref.id)")
+                #expect(["L1", "L2"].contains(ref.level),
+                        "Invalid level '\(ref.level)' for CIS \(ref.id)")
+            }
+        }
+    }
+
+    @Test("Minimum CIS coverage")
+    func minimumCoverage() {
+        #expect(CISMapping.catalog.count >= 50, "Expected at least 50 checks mapped to CIS rules")
+    }
+
+    @Test("CIS version is set")
+    func cisVersionSet() {
+        #expect(!CISMapping.cisVersion.isEmpty)
+        #expect(CISMapping.cisVersion.contains("macOS 15"))
+    }
+
+    @Test("CISReference is identifiable by its ID")
+    func cisReferenceIdentifiable() {
+        let ref = CISReference(id: "2.2.1", title: "Test", level: "L1")
+        #expect(ref.id == "2.2.1")
+    }
+
+    @Test("Applications category exists")
+    func applicationsCategoryExists() {
+        #expect(!CheckCategory.applications.rawValue.isEmpty)
+        #expect(!CheckCategory.applications.icon.isEmpty)
+    }
+}

@@ -23,12 +23,18 @@ struct SystemChecker {
         async let auditdCheck = checkAuditDaemon()
         async let auditFlagsCheck = checkAuditFlags()
         async let auditPermsCheck = checkAuditLogPermissions()
+        async let amfiCheck = checkAMFI()
+        async let worldWritableCheck = checkWorldWritableFolders()
+        async let sudoTimeoutCheck = checkSudoTimeout()
+        async let sudoLoggingCheck = checkSudoLogging()
+        async let rootDisabledCheck = checkRootDisabled()
         return await [
             sipCheck, gatekeeperCheck, autoUpdateCheck, autoDownloadCheck, autoInstallCheck,
             criticalUpdateCheck, configDataCheck, appStoreUpdateCheck, versionCheck, findMyCheck,
             extensionsCheck, uptimeCheck, ntpCheck, malwareCheck,
             xprotectCheck, secureBootCheck, rsrCheck,
             auditdCheck, auditFlagsCheck, auditPermsCheck,
+            amfiCheck, worldWritableCheck, sudoTimeoutCheck, sudoLoggingCheck, rootDisabledCheck,
         ]
     }
 
@@ -585,6 +591,130 @@ struct SystemChecker {
             check.status = .warning
             check.details = "Audit log issues: \(issues.joined(separator: "; "))."
             check.recommendation = "Fix with: sudo chmod 700 /var/audit && sudo chown root:wheel /var/audit"
+        }
+        return check
+    }
+
+    private func checkAMFI() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "system.amfi",
+            name: "Mobile File Integrity",
+            description: "AMFI ensures only properly signed code runs, preventing unauthorized code injection.",
+            category: .systemProtection,
+            severity: .high
+        )
+        let result = await ShellCommand.run("nvram -p 2>/dev/null | grep -c 'amfi_get_out_of_my_way=1'")
+        let count = Int(result.output) ?? 0
+        if count == 0 {
+            check.status = .pass
+            check.details = "Mobile File Integrity (AMFI) is enabled."
+        } else {
+            check.status = .fail
+            check.details = "Mobile File Integrity (AMFI) has been disabled via NVRAM."
+            check.recommendation = "Re-enable AMFI by running: sudo nvram -d amfi_get_out_of_my_way"
+        }
+        return check
+    }
+
+    private func checkWorldWritableFolders() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "system.worldwritable",
+            name: "World-Writable System Folders",
+            description: "World-writable directories in system paths allow any user to modify system files.",
+            category: .systemProtection,
+            severity: .medium
+        )
+        let result = await ShellCommand.run("find /System/Volumes/Data/System -type d -perm -0002 -not -path '*/Caches/*' 2>/dev/null | head -5")
+        if result.output.isEmpty {
+            check.status = .pass
+            check.details = "No world-writable system folders found."
+        } else {
+            let folders = result.output.components(separatedBy: "\n").filter { !$0.isEmpty }
+            check.status = .warning
+            check.details = "Found \(folders.count) world-writable system folder\(folders.count == 1 ? "" : "s")."
+            check.recommendation = "Review and fix permissions with: sudo chmod o-w <folder_path>"
+        }
+        return check
+    }
+
+    private func checkSudoTimeout() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "system.sudo.timeout",
+            name: "Sudo Session Timeout",
+            description: "A long sudo timeout means elevated privileges persist after use, increasing risk if the terminal is left unattended.",
+            category: .systemProtection,
+            severity: .low
+        )
+        let vResult = await ShellCommand.run("sudo -V 2>/dev/null | grep 'Authentication timestamp timeout'")
+        let grepResult = await ShellCommand.run("grep -r 'timestamp_timeout' /etc/sudoers /etc/sudoers.d/ 2>/dev/null")
+        if !grepResult.output.isEmpty {
+            // Custom timeout configured in sudoers
+            if grepResult.output.contains("timestamp_timeout=0") || grepResult.output.contains("timestamp_timeout = 0") {
+                check.status = .pass
+                check.details = "Sudo always prompts for a password (timeout is 0)."
+            } else if let range = grepResult.output.range(of: "\\d+", options: .regularExpression),
+                      let timeout = Int(grepResult.output[range]) {
+                if timeout > 10 {
+                    check.status = .warning
+                    check.details = "Sudo session timeout is \(timeout) minutes — longer than recommended."
+                    check.recommendation = "Reduce the sudo timeout by adding 'Defaults timestamp_timeout=0' to /etc/sudoers via visudo."
+                } else {
+                    check.status = .pass
+                    check.details = "Sudo session timeout is \(timeout) minutes."
+                }
+            } else {
+                check.status = .info
+                check.details = "Custom sudo timeout is configured."
+            }
+        } else if !vResult.output.isEmpty {
+            check.status = .info
+            check.details = "Sudo uses the default session timeout. \(vResult.output.trimmingCharacters(in: .whitespacesAndNewlines))"
+        } else {
+            check.status = .info
+            check.details = "Sudo uses the default session timeout (typically 5 minutes)."
+        }
+        return check
+    }
+
+    private func checkSudoLogging() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "system.sudo.logging",
+            name: "Sudo Command Logging",
+            description: "Sudo should log all commands executed with elevated privileges for audit purposes.",
+            category: .systemProtection,
+            severity: .low
+        )
+        let result = await ShellCommand.run("grep -r 'log_output\\|Defaults.*logfile\\|Defaults.*log_input' /etc/sudoers /etc/sudoers.d/ 2>/dev/null")
+        if !result.output.isEmpty {
+            check.status = .pass
+            check.details = "Sudo command logging is configured."
+        } else {
+            check.status = .info
+            check.details = "Sudo uses default logging. Explicit command logging is not configured."
+            check.recommendation = "For enhanced auditing, add 'Defaults log_input, log_output' to /etc/sudoers via visudo."
+        }
+        return check
+    }
+
+    private func checkRootDisabled() async -> SecurityCheck {
+        var check = SecurityCheck(
+            id: "system.rootdisabled",
+            name: "Root Account",
+            description: "The root account should be disabled to prevent direct root login.",
+            category: .systemProtection,
+            severity: .medium
+        )
+        let result = await ShellCommand.run("dscl . -read /Users/root AuthenticationAuthority 2>/dev/null")
+        if result.exitCode != 0 {
+            check.status = .pass
+            check.details = "Root account is disabled (no authentication authority)."
+        } else if result.output.contains("DisabledUser") {
+            check.status = .pass
+            check.details = "Root account is explicitly disabled."
+        } else {
+            check.status = .fail
+            check.details = "Root account appears to be enabled."
+            check.recommendation = "Disable the root account with: dsenableroot -d, or open Directory Utility > Edit > Disable Root User."
         }
         return check
     }
