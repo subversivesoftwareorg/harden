@@ -30,6 +30,10 @@ struct MainTabView: View {
             ComplianceTabView()
                 .tabItem { Label("Compliance", systemImage: "shield.checkered") }
                 .tag(3)
+
+            IntegrationView()
+                .tabItem { Label("Integration", systemImage: "server.rack") }
+                .tag(4)
         }
         .environment(store)
         .environment(scanner)
