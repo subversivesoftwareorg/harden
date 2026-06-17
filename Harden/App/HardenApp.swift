@@ -2,6 +2,16 @@ import SwiftUI
 import Sparkle
 
 @main
+enum AppEntry {
+    static func main() {
+        if CommandLine.arguments.contains("--agent") {
+            AgentMode.run()
+        } else {
+            HardenApp.main()
+        }
+    }
+}
+
 struct HardenApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var showHelp = false
