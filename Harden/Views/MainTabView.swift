@@ -8,7 +8,7 @@ struct MainTabView: View {
     @State private var showOnboarding = false
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @AppStorage("scanOnLaunch") private var scanOnLaunch = true
+    @AppStorage("scanOnLaunch") private var scanOnLaunch = false
 
     var body: some View {
         TabView(selection: $selectedTab) {

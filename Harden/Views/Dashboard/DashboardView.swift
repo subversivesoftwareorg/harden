@@ -2,30 +2,73 @@ import SwiftUI
 
 struct DashboardView: View {
     @Environment(SecurityStore.self) private var store
+    @Environment(SecurityScanner.self) private var scanner
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                headerSection
-                categoryGrid
-                if let date = store.lastScanDate {
-                    Text("Last scan: \(date.formatted(date: .abbreviated, time: .shortened))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        if store.checks.isEmpty && !store.isScanning {
+            emptyState
+        } else {
+            ScrollView {
+                VStack(spacing: 24) {
+                    headerSection
+                    categoryGrid
+                    HStack {
+                        if let date = store.lastScanDate {
+                            Text("Last scan: \(date.formatted(date: .abbreviated, time: .shortened))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button {
+                            Task { await store.runScan(using: scanner) }
+                        } label: {
+                            Label("Re-scan", systemImage: "arrow.clockwise")
+                                .font(.caption)
+                        }
+                        .disabled(store.isScanning)
+                    }
+                }
+                .padding()
+            }
+            .overlay {
+                if store.isScanning && store.checks.isEmpty {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .controlSize(.large)
+                        Text("Scanning your Mac...")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
-            .padding()
         }
-        .overlay {
-            if store.isScanning && store.checks.isEmpty {
-                VStack(spacing: 12) {
-                    ProgressView()
-                        .controlSize(.large)
-                    Text("Scanning your Mac...")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "shield.checkered")
+                .font(.system(size: 64))
+                .foregroundStyle(.secondary)
+            Text("Ready to Scan")
+                .font(.title2)
+                .fontWeight(.bold)
+            Text("Check your Mac's security configuration against industry benchmarks.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            Button {
+                Task { await store.runScan(using: scanner) }
+            } label: {
+                Label("Scan Now", systemImage: "play.fill")
+                    .font(.headline)
+                    .frame(width: 180)
+                    .padding(.vertical, 8)
             }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            Spacer()
         }
     }
 
