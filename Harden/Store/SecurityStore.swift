@@ -6,6 +6,7 @@ final class SecurityStore {
     var checks: [SecurityCheck] = []
     var isScanning = false
     var lastScanDate: Date?
+    var device: DeviceIdentity?
 
     // Snooze state: checkID -> expiry date
     private(set) var snoozedItems: [String: Date] = [:]
@@ -78,15 +79,17 @@ final class SecurityStore {
     func runScan(using scanner: SecurityScanner) async {
         isScanning = true
         let previousChecks = checks
-        let results = await scanner.scan()
-        checks = results
+        async let results = scanner.scan()
+        async let deviceInfo = DeviceIdentity.current()
+        checks = await results
+        device = await deviceInfo
         lastScanDate = Date()
         isScanning = false
         purgeExpiredSnoozes()
 
         // Detect changes from previous scan
         if !previousChecks.isEmpty {
-            changedChecks = detectChanges(from: previousChecks, to: results)
+            changedChecks = detectChanges(from: previousChecks, to: checks)
         }
 
         // Record history snapshot
@@ -193,6 +196,7 @@ final class SecurityStore {
             )
         }
         let wrapper = ExportWrapper(
+            device: device,
             scanDate: lastScanDate ?? Date(), score: score,
             totalChecks: checks.count, checks: export
         )
@@ -260,6 +264,7 @@ struct ExportedCheck: Codable {
 }
 
 struct ExportWrapper: Codable {
+    let device: DeviceIdentity?
     let scanDate: Date
     let score: Int
     let totalChecks: Int

@@ -2,10 +2,10 @@ import Foundation
 
 enum ComplianceReportGenerator {
 
-    static func generateHTML(checks: [SecurityCheck], score: Int, scanDate: Date) -> Data? {
+    static func generateHTML(checks: [SecurityCheck], score: Int, scanDate: Date, device: DeviceIdentity?) -> Data? {
         let dateStr = scanDate.formatted(date: .long, time: .shortened)
-        let hostname = ProcessInfo.processInfo.hostName
-        let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
+        let hostname = device?.hostname ?? ProcessInfo.processInfo.hostName
+        let osVersion = device.map { "\($0.osVersion) (\($0.osBuild))" } ?? ProcessInfo.processInfo.operatingSystemVersionString
 
         let totalChecks = checks.count
         let passed = checks.filter { $0.status == .pass }.count
@@ -81,6 +81,24 @@ enum ComplianceReportGenerator {
         </div>
 
         """
+
+        // Device identity section
+        if let dev = device {
+            html += """
+            <h2>Device Identity</h2>
+            <table>
+            <tbody>
+            <tr><td><strong>Hardware UUID</strong></td><td><code>\(escapeHTML(dev.hardwareUUID))</code></td></tr>
+            <tr><td><strong>Serial Number</strong></td><td>\(escapeHTML(dev.serialNumber))</td></tr>
+            <tr><td><strong>Model</strong></td><td>\(escapeHTML(dev.model))</td></tr>
+            <tr><td><strong>Hostname</strong></td><td>\(escapeHTML(dev.hostname))</td></tr>
+            <tr><td><strong>macOS Version</strong></td><td>\(escapeHTML(dev.osVersion)) (\(escapeHTML(dev.osBuild)))</td></tr>
+            <tr><td><strong>Primary MAC</strong></td><td><code>\(escapeHTML(dev.primaryMAC))</code></td></tr>
+            </tbody>
+            </table>
+
+            """
+        }
 
         // STIG compliance section
         html += """

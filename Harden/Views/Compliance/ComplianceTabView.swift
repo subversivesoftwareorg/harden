@@ -53,7 +53,8 @@ struct ComplianceTabView: View {
             data = ComplianceReportGenerator.generateHTML(
                 checks: store.checks,
                 score: store.score,
-                scanDate: store.lastScanDate ?? Date()
+                scanDate: store.lastScanDate ?? Date(),
+                device: store.device
             )
             contentType = .html
             fileExtension = "html"
