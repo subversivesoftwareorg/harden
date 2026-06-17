@@ -9,6 +9,7 @@ struct DeviceIdentity: Codable {
     let osVersion: String
     let osBuild: String
     let primaryMAC: String
+    let currentUser: String
 
     var stableID: String { hardwareUUID }
 
@@ -21,6 +22,7 @@ struct DeviceIdentity: Codable {
         async let osVer = ShellCommand.run("sw_vers -productVersion")
         async let osBld = ShellCommand.run("sw_vers -buildVersion")
         async let mac = ShellCommand.run("ifconfig en0 2>/dev/null | grep ether | awk '{print $2}'")
+        async let user = ShellCommand.run("id -F 2>/dev/null || whoami")
 
         return await DeviceIdentity(
             hardwareUUID: uuid.output,
@@ -30,7 +32,8 @@ struct DeviceIdentity: Codable {
             localHostname: localHost.output,
             osVersion: osVer.output,
             osBuild: osBld.output,
-            primaryMAC: mac.output
+            primaryMAC: mac.output,
+            currentUser: user.output
         )
     }
 }

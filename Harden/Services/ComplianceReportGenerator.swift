@@ -130,6 +130,7 @@ enum ComplianceReportGenerator {
             <tr><td><strong>Hostname</strong></td><td>\(escapeHTML(dev.hostname))</td></tr>
             <tr><td><strong>macOS Version</strong></td><td>\(escapeHTML(dev.osVersion)) (\(escapeHTML(dev.osBuild)))</td></tr>
             <tr><td><strong>Primary MAC</strong></td><td><code>\(escapeHTML(dev.primaryMAC))</code></td></tr>
+            <tr><td><strong>Current User</strong></td><td>\(escapeHTML(dev.currentUser))</td></tr>
             </tbody>
             </table>
 
