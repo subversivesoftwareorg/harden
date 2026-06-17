@@ -6,14 +6,18 @@ struct IntegrationView: View {
     @AppStorage("integrationServerURL") private var serverURL = ""
     @AppStorage("integrationAccountID") private var accountID = ""
     @AppStorage("integrationAutoReport") private var autoReport = false
+    @AppStorage("scheduledScanInterval") private var scanIntervalHours = 4
 
     @State private var secretKey = ""
     @State private var testStatus: TestStatus?
+    @State private var agentInstalled = LaunchAgentManager.isInstalled
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 header
+                Divider()
+                scheduledScanSection
                 Divider()
                 configSection
                 Divider()
@@ -85,6 +89,63 @@ struct IntegrationView: View {
                     Label("Send Report Now", systemImage: "paperplane")
                 }
                 .disabled(!isConfigured || store.checks.isEmpty)
+            }
+        }
+    }
+
+    // MARK: - Scheduled Scanning
+
+    private var scheduledScanSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Scheduled Scanning")
+                .font(.headline)
+
+            Text("Run security scans automatically in the background. You'll get a notification if any checks regress.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                Picker("Scan every", selection: $scanIntervalHours) {
+                    Text("1 hour").tag(1)
+                    Text("4 hours").tag(4)
+                    Text("8 hours").tag(8)
+                    Text("24 hours").tag(24)
+                }
+                .frame(width: 200)
+
+                if agentInstalled {
+                    Button {
+                        LaunchAgentManager.uninstall()
+                        agentInstalled = false
+                    } label: {
+                        Label("Disable", systemImage: "stop.circle")
+                    }
+
+                    Button {
+                        LaunchAgentManager.install(intervalHours: scanIntervalHours)
+                        agentInstalled = true
+                    } label: {
+                        Label("Update Schedule", systemImage: "arrow.clockwise")
+                    }
+                } else {
+                    Button {
+                        LaunchAgentManager.install(intervalHours: scanIntervalHours)
+                        agentInstalled = true
+                    } label: {
+                        Label("Enable Scheduled Scanning", systemImage: "play.circle")
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+
+            if agentInstalled {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text("Scheduled scanning is active (every \(scanIntervalHours) hour\(scanIntervalHours == 1 ? "" : "s"))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }
