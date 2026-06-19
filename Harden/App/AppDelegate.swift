@@ -4,7 +4,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        NSApp.applicationIconImage = makeHardenIcon(size: 512)
     }
 
     @objc func showAboutPanel(_ sender: Any?) {
@@ -31,11 +30,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
 
-        let icon = makeHardenIcon(size: 128)
-
         NSApp.orderFrontStandardAboutPanel(options: [
             .applicationName: "Harden",
-            .applicationIcon: icon,
             .applicationVersion: version,
             .version: build,
             .credits: credits
