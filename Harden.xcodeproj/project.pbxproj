@@ -27,7 +27,6 @@
 		A10000000000000000000012 /* ActionItemsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* ActionItemsView.swift */; };
 		A10000000000000000000013 /* CheckDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* CheckDetailView.swift */; };
 		A10000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* Assets.xcassets */; };
-		A10000000000000000000016 /* AnvilIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* AnvilIconView.swift */; };
 		A10000000000000000000017 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* SettingsView.swift */; };
 		A10000000000000000000018 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* HelpView.swift */; };
 		A10000000000000000000019 /* Remediation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* Remediation.swift */; };
@@ -68,7 +67,6 @@
 		B10000000000000000000013 /* CheckDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckDetailView.swift; sourceTree = "<group>"; };
 		B10000000000000000000014 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B10000000000000000000015 /* Harden.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Harden.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		B10000000000000000000016 /* AnvilIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnvilIconView.swift; sourceTree = "<group>"; };
 		B10000000000000000000017 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B10000000000000000000018 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		B10000000000000000000019 /* Remediation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Remediation.swift; sourceTree = "<group>"; };
@@ -196,7 +194,6 @@
 		C1000000000000000000000E /* Components */ = {
 			isa = PBXGroup;
 			children = (
-				B10000000000000000000016 /* AnvilIconView.swift */,
 				B1000000000000000000001C /* CheckForUpdatesView.swift */,
 			);
 			path = Components;
@@ -331,7 +328,6 @@
 			files = (
 				A1000000000000000000000A /* AuthenticationChecker.swift in Sources */,
 				A10000000000000000000012 /* ActionItemsView.swift in Sources */,
-				A10000000000000000000016 /* AnvilIconView.swift in Sources */,
 				A10000000000000000000002 /* AppDelegate.swift in Sources */,
 				A10000000000000000000018 /* HelpView.swift in Sources */,
 				A10000000000000000000019 /* Remediation.swift in Sources */,
