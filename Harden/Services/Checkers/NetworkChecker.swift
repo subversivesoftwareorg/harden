@@ -1,3 +1,4 @@
+import CoreWLAN
 import Foundation
 
 struct NetworkChecker {
@@ -59,10 +60,18 @@ struct NetworkChecker {
             category: .network,
             severity: .medium
         )
-        let result = await ShellCommand.run(
-            "defaults read /Library/Preferences/SystemConfiguration/com.apple.airport.preferences KnownNetworks 2>/dev/null | grep -c 'SecurityType = Open'"
-        )
-        let count = Int(result.output) ?? 0
+        // Saved networks now live in a root-only plist; CoreWLAN still exposes each profile's security type.
+        guard let interface = CWWiFiClient.shared().interface() else {
+            check.status = .info
+            check.details = "No Wi-Fi interface found."
+            return check
+        }
+        guard let profiles = interface.configuration()?.networkProfiles.array as? [CWNetworkProfile] else {
+            check.status = .unknown
+            check.details = "Could not read saved Wi-Fi networks."
+            return check
+        }
+        let count = profiles.filter { $0.security == .none }.count
         if count == 0 {
             check.status = .pass
             check.details = "No saved open Wi-Fi networks found."
