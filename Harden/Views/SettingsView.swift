@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("scanOnLaunch") private var scanOnLaunch = true
+    @AppStorage("scanOnLaunch") private var scanOnLaunch = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     var body: some View {
