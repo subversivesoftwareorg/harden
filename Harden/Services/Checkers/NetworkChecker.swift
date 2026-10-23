@@ -105,9 +105,11 @@ struct NetworkChecker {
             category: .network,
             severity: .high
         )
-        // Use the system_profiler to get WiFi security info
+        // airport was removed in macOS 14.4; ipconfig still reports security with SSID redacted.
+        // Look up the Wi-Fi device rather than assuming en0 (it's Ethernet on desktop Macs).
         let result = await ShellCommand.run("""
-            /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I 2>/dev/null | grep -i 'link auth'
+            dev=$(networksetup -listallhardwareports | awk '/Hardware Port: Wi-Fi/{getline; print $2}')
+            [ -n "$dev" ] && ipconfig getsummary "$dev" 2>/dev/null | awk -F' : ' '/^ *Security :/{print $2}'
             """)
         let output = result.output.lowercased()
         if output.contains("wpa3") {
