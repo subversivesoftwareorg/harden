@@ -82,9 +82,14 @@ HardenTests/
 
 Each checker is a struct with a `runChecks() async -> [SecurityCheck]` method. Checks run real macOS shell commands via `ShellCommand.run()`, which wraps `Process` in async/await. The `SecurityScanner` orchestrator runs all 8 checkers in parallel with `async let`.
 
-Commands used include `defaults read`, `fdesetup status`, `csrutil status`, `spctl --status`, `socketfilterfw`, `launchctl list`, `systemsetup`, `networksetup`, `cupsctl`, and `ipconfig getsummary`. Avoid the `airport` utility: Apple removed it in macOS 14.4. `ipconfig getsummary <wifi-device>` still reports the link's security type with SSID/BSSID redacted.
+Commands used include `defaults read`, `fdesetup status`, `csrutil status`, `spctl --status`, `socketfilterfw`, `launchctl print-disabled system`, `systemsetup`, `networksetup`, `cupsctl`, and `ipconfig getsummary`. Avoid the `airport` utility: Apple removed it in macOS 14.4. `ipconfig getsummary <wifi-device>` still reports the link's security type with SSID/BSSID redacted.
 
-The one exception to shell commands is `network.wifi.open`, which uses CoreWLAN (`CWNetworkProfile.security`). Saved networks moved to the root-only `/Library/Preferences/com.apple.wifi.known-networks.plist`, and no unprivileged command reads their security type. The app is not sandboxed, so CoreWLAN works in both the GUI and `--agent` mode.
+Checks run without root, which rules out some obvious commands:
+- `launchctl list` only lists the current user's jobs. System daemons never appear in it, and per-user agents with similar names always do. `launchctl print system/<label>` needs root. Use `LaunchdOverrides` (in `SecurityScanner.swift`), which reads `launchctl print-disabled system`: the sharing services ship disabled, so `=> enabled` means the user turned one on. For a daemon that runs whenever it is enabled, `pgrep -x <name>` also works.
+- `systemsetup -get...` prints "You need administrator access" and exits 0.
+- Match command output exactly rather than with `contains("on")`. Apple rewords these messages between releases, and usage or error text can contain the word being matched.
+
+Two checks don't shell out. `network.wifi.open` uses CoreWLAN (`CWNetworkProfile.security`): saved networks moved to the root-only `/Library/Preferences/com.apple.wifi.known-networks.plist`, and no unprivileged command reads their security type. The app is not sandboxed, so CoreWLAN works in both the GUI and `--agent` mode. The Safari checks read Safari's container plist directly, because Safari is sandboxed and `defaults read com.apple.Safari` doesn't see its settings. That read needs Full Disk Access; without it the Safari checks report unknown.
 
 After all checkers run, the `SecurityScanner` enriches each check with STIG references from `STIGMapping.catalog` and CIS references from `CISMapping.catalog`. This keeps compliance metadata centralized rather than scattered across checkers.
 

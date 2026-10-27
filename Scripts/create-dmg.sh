@@ -17,7 +17,7 @@ set -e
 
 APP_NAME="Harden"
 BUNDLE_ID="com.subversivesoftware.Harden"
-VERSION="1.1.0"
+VERSION="1.1.1"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -53,9 +53,11 @@ if [ "${1:-}" = "--skip-notarize" ]; then
 fi
 
 # ── Find Developer ID certificate ────────────────────────────────
-IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)".*/\1/')
+# Match the team, so another team's Developer ID in the keychain is never picked.
+TEAM_ID="${TEAM_ID:-84CC987JU3}"
+IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | grep "($TEAM_ID)" | head -1 | sed 's/.*"\(.*\)".*/\1/')
 if [ -z "$IDENTITY" ]; then
-    echo "Error: No 'Developer ID Application' certificate found in keychain."
+    echo "Error: No 'Developer ID Application' certificate for team $TEAM_ID found in keychain."
     if [ "$SKIP_NOTARIZE" = true ]; then
         echo "Continuing with ad-hoc signing..."
         IDENTITY=""
@@ -66,8 +68,6 @@ fi
 
 # ── Notarization credentials ─────────────────────────────────────
 if [ "$SKIP_NOTARIZE" = false ] && [ -n "$IDENTITY" ]; then
-    TEAM_ID="${TEAM_ID:-84CC987JU3}"
-
     if [ -z "$APPLE_ID" ]; then
         printf "Apple ID (email) for notarization: "
         read -r APPLE_ID
@@ -91,7 +91,7 @@ xcodebuild -project "$PROJECT_DIR/$APP_NAME.xcodeproj" \
     -derivedDataPath "$DERIVED_DATA" \
     ARCHS="arm64 x86_64" \
     ONLY_ACTIVE_ARCH=NO \
-    DEVELOPMENT_TEAM="${TEAM_ID:-84CC987JU3}" \
+    DEVELOPMENT_TEAM="$TEAM_ID" \
     clean build \
     | tail -5
 
