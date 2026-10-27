@@ -449,7 +449,7 @@ struct CheckGuideEntry: Identifiable {
             howToFix: "Finder > AirDrop > set to 'Contacts Only'. Or use the Fix button to disable entirely.",
             command: "defaults write com.apple.NetworkBrowser DisableAirDrop -bool true"),
         CheckGuideEntry(id: "sharing.insecure", name: "Legacy Insecure Services", category: .sharing, severity: "High",
-            whatItChecks: "Whether finger, FTP proxy, or telnet daemons are running.",
+            whatItChecks: "Whether the finger, FTP, TFTP, or telnet servers are enabled.",
             whyItMatters: "These protocols transmit data (including passwords) in plain text and have no place on modern systems.",
             howToFix: "These services should not be running on a modern Mac. If they are, investigate what enabled them.",
             command: nil),
