@@ -344,17 +344,19 @@ struct SystemChecker {
             category: .systemProtection,
             severity: .medium
         )
+        // Prints "Network Time: On" when run as root (for example from MDM); otherwise
+        // it prints "You need administrator access", and no other source is readable.
         let result = await ShellCommand.run("systemsetup -getusingnetworktime 2>/dev/null")
-        if result.output.lowercased().contains("on") {
+        if result.output.lowercased().hasSuffix(": on") {
             check.status = .pass
             check.details = "Network time synchronization is enabled."
-        } else if result.output.lowercased().contains("off") {
+        } else if result.output.lowercased().hasSuffix(": off") {
             check.status = .warning
             check.details = "Network time synchronization is disabled."
             check.recommendation = "Open System Settings > General > Date & Time and enable 'Set time and date automatically'."
         } else {
             check.status = .info
-            check.details = "Could not determine NTP status. Check System Settings > General > Date & Time."
+            check.details = "macOS only shows this setting to administrators. Check that 'Set time and date automatically' is on in System Settings > General > Date & Time."
         }
         return check
     }
@@ -708,13 +710,19 @@ struct SystemChecker {
             category: .systemProtection,
             severity: .medium
         )
-        let result = await ShellCommand.run("dscl . -read /Users/root AuthenticationAuthority 2>/dev/null")
-        if result.exitCode != 0 {
+        // dscl exits 0 and prints "No such key" to stderr when root has no authentication authority (CIS 5.6).
+        let result = await ShellCommand.run("dscl . -read /Users/root AuthenticationAuthority")
+        // The STIG instead disables root by setting its shell to /usr/bin/false, which is what the auto-fix does.
+        let shell = await ShellCommand.run("dscl . -read /Users/root UserShell 2>/dev/null")
+        if result.exitCode != 0 || result.output.contains("No such key") {
             check.status = .pass
             check.details = "Root account is disabled (no authentication authority)."
         } else if result.output.contains("DisabledUser") {
             check.status = .pass
             check.details = "Root account is explicitly disabled."
+        } else if shell.output.hasSuffix("/usr/bin/false") {
+            check.status = .pass
+            check.details = "Root account cannot log in (shell is /usr/bin/false)."
         } else {
             check.status = .fail
             check.details = "Root account appears to be enabled."

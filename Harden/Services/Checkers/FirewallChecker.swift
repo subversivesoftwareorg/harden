@@ -19,8 +19,10 @@ struct FirewallChecker {
             category: .firewall,
             severity: .critical
         )
-        let result = await ShellCommand.run("defaults read /Library/Preferences/com.apple.alf globalstate")
-        if let value = Int(result.output) {
+        // macOS 15 and later no longer have the com.apple.alf preferences, so ask socketfilterfw first.
+        let state = await ShellCommand.run("/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate")
+        let legacy = await ShellCommand.run("defaults read /Library/Preferences/com.apple.alf globalstate")
+        if let value = Self.globalState(from: state.output) ?? Int(legacy.output) {
             if value >= 1 {
                 check.status = .pass
                 check.details = value == 2
@@ -47,10 +49,11 @@ struct FirewallChecker {
             severity: .medium
         )
         let result = await ShellCommand.run("/usr/libexec/ApplicationFirewall/socketfilterfw --getstealthmode")
-        if result.output.lowercased().contains("enabled") {
+        let enabled = Self.onOff(from: result.output)
+        if enabled == true {
             check.status = .pass
             check.details = "Stealth mode is enabled."
-        } else if result.output.lowercased().contains("disabled") {
+        } else if enabled == false {
             check.status = .warning
             check.details = "Stealth mode is disabled."
             check.recommendation = "Enable via: sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode on"
@@ -103,18 +106,38 @@ struct FirewallChecker {
             severity: .low
         )
         let result = await ShellCommand.run("/usr/libexec/ApplicationFirewall/socketfilterfw --getloggingmode")
-        if result.output.lowercased().contains("on") || result.output.lowercased().contains("enabled") {
+        let enabled = Self.onOff(from: result.output)
+        if enabled == true {
             check.status = .pass
             check.details = "Firewall logging is enabled."
-        } else if result.output.lowercased().contains("off") || result.output.lowercased().contains("disabled") {
+        } else if enabled == false {
             check.status = .warning
             check.details = "Firewall logging is disabled."
             check.recommendation = "Enable via: sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setloggingmode on"
+        } else if result.output.lowercased().hasPrefix("usage:") {
+            check.status = .unknown
+            check.details = "This version of macOS no longer reports the firewall logging setting."
         } else {
             check.status = .unknown
             check.details = "Could not determine logging status."
         }
         return check
+    }
+
+    /// Parses `socketfilterfw --getglobalstate` output such as "Firewall is enabled. (State = 1)".
+    static func globalState(from output: String) -> Int? {
+        guard let range = output.range(of: #"State = \d+"#, options: .regularExpression) else { return nil }
+        return Int(output[range].dropFirst("State = ".count))
+    }
+
+    /// Reads an on/off answer from socketfilterfw: "Firewall stealth mode is on" (macOS 15 and
+    /// later), "Stealth mode enabled" (older), or "Log mode is off". Matching only the end of the
+    /// output keeps the usage text, which contains "on | off", from counting as an answer.
+    static func onOff(from output: String) -> Bool? {
+        let text = output.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        if text.hasSuffix(" on") || text.hasSuffix(" enabled") { return true }
+        if text.hasSuffix(" off") || text.hasSuffix(" disabled") { return false }
+        return nil
     }
 
     private func checkPFFirewall() async -> SecurityCheck {

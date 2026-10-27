@@ -179,4 +179,45 @@ struct CommandOutputParsingTests {
         #expect(overrides["com.apple.auditd"] == nil)
         #expect(overrides.count == 4)
     }
+
+    @Test("Firewall global state is read from socketfilterfw output")
+    func firewallGlobalState() {
+        #expect(FirewallChecker.globalState(from: "Firewall is enabled. (State = 1)") == 1)
+        #expect(FirewallChecker.globalState(from: "Firewall is disabled. (State = 0)") == 0)
+        #expect(FirewallChecker.globalState(from: "Firewall is blocking all non-essential incoming connections. (State = 2)") == 2)
+        #expect(FirewallChecker.globalState(from: "") == nil)
+    }
+
+    @Test("socketfilterfw on/off answers in current and older wording")
+    func socketfilterfwOnOff() {
+        #expect(FirewallChecker.onOff(from: "Firewall stealth mode is on") == true)
+        #expect(FirewallChecker.onOff(from: "Firewall stealth mode is off") == false)
+        #expect(FirewallChecker.onOff(from: "Stealth mode enabled") == true)
+        #expect(FirewallChecker.onOff(from: "Stealth mode disabled") == false)
+        #expect(FirewallChecker.onOff(from: "Log mode is on") == true)
+    }
+
+    @Test("socketfilterfw usage text is not read as an answer")
+    func socketfilterfwUsage() {
+        let usage = "usage: /usr/libexec/ApplicationFirewall/socketfilterfw [-h] [--getglobalstate] [--setglobalstate on | off] [--getstealthmode] [--setstealthmode on | off]"
+        #expect(FirewallChecker.onOff(from: usage) == nil)
+    }
+
+    @Test("Bridge members are not reported as promiscuous interfaces")
+    func promiscuousBridgeMembers() {
+        let ifconfig = """
+        lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
+        en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+        en1: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500
+        	options=460<TSO4,TSO6,CHANNEL_IO>
+        en2: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500
+        en5: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500
+        bridge0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+        	member: en1 flags=3<LEARNING,DISCOVER>
+        	member: en2 flags=3<LEARNING,DISCOVER>
+        """
+        let result = NetworkChecker.promiscuousInterfaces(in: ifconfig)
+        #expect(result.bridged == ["en1", "en2"])
+        #expect(result.unexplained == ["en5"])
+    }
 }

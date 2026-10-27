@@ -381,15 +381,21 @@ struct AuthenticationChecker {
             category: .authentication,
             severity: .medium
         )
-        let result = await ShellCommand.run("security authorizationdb read system.preferences 2>/dev/null | grep -c 'authenticate-admin-nonshared'")
-        let count = Int(result.output) ?? 0
-        if count > 0 {
+        // The setting is the `shared` flag on the system.preferences right: false means every
+        // change asks for an admin password (CIS 2.6.8). Older setups use a nonshared rule instead.
+        let result = await ShellCommand.run("security authorizationdb read system.preferences 2>/dev/null")
+        let right = (try? PropertyListSerialization.propertyList(from: Data(result.output.utf8), format: nil)) as? [String: Any]
+        let rules = right?["rule"] as? [String] ?? []
+        if right?["shared"] as? Bool == false || rules.contains("authenticate-admin-nonshared") {
             check.status = .pass
             check.details = "An administrator password is required to change system-wide preferences."
-        } else {
+        } else if right != nil {
             check.status = .warning
-            check.details = "System-wide preferences may not require an administrator password."
-            check.recommendation = "Open System Settings > Privacy & Security and ensure 'Require administrator password to access system-wide preferences' is enabled."
+            check.details = "System-wide preferences do not require an administrator password."
+            check.recommendation = "Open System Settings > Privacy & Security > Advanced and enable 'Require an administrator password to access system-wide settings'."
+        } else {
+            check.status = .unknown
+            check.details = "Could not read the system preferences authorization rule."
         }
         return check
     }
