@@ -3,12 +3,13 @@ import Foundation
 struct ApplicationsChecker {
 
     func runChecks() async -> [SecurityCheck] {
-        async let safariAutoOpen = checkSafariAutoOpen()
-        async let safariFraud = checkSafariFraudWarning()
-        async let safariCrossSite = checkSafariCrossSiteTracking()
-        async let safariAdPrivacy = checkSafariAdPrivacy()
-        async let safariFullURL = checkSafariFullURL()
-        async let safariStatusBar = checkSafariStatusBar()
+        let safari = SafariSettings.load()
+        async let safariAutoOpen = checkSafariAutoOpen(safari)
+        async let safariFraud = checkSafariFraudWarning(safari)
+        async let safariCrossSite = checkSafariCrossSiteTracking(safari)
+        async let safariAdPrivacy = checkSafariAdPrivacy(safari)
+        async let safariFullURL = checkSafariFullURL(safari)
+        async let safariStatusBar = checkSafariStatusBar(safari)
         async let terminalSecure = checkTerminalSecureKeyboard()
         async let fileExtensions = checkFileExtensions()
         return await [
@@ -17,7 +18,49 @@ struct ApplicationsChecker {
         ]
     }
 
-    private func checkSafariAutoOpen() async -> SecurityCheck {
+    /// Safari is sandboxed, so its settings live in its container rather than the
+    /// `com.apple.Safari` domain that `defaults read` sees. Reading the container
+    /// needs Full Disk Access.
+    private enum SafariSettings {
+        case loaded([String: Int])
+        case unreadable
+
+        static func load() -> SafariSettings {
+            let url = FileManager.default.homeDirectoryForCurrentUser
+                .appending(path: "Library/Containers/com.apple.Safari/Data/Library/Preferences/com.apple.Safari.plist")
+            do {
+                let data = try Data(contentsOf: url)
+                let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] ?? [:]
+                return .loaded(plist.compactMapValues { ($0 as? NSNumber)?.intValue })
+            } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+                // Safari has never saved a setting, so everything is at its default.
+                return .loaded([:])
+            } catch {
+                return .unreadable
+            }
+        }
+
+        var isReadable: Bool {
+            if case .loaded = self { return true }
+            return false
+        }
+
+        /// The setting's value (Booleans read as 0 or 1), or nil when Safari uses its default.
+        func value(_ key: String) -> Int? {
+            guard case .loaded(let settings) = self else { return nil }
+            return settings[key]
+        }
+    }
+
+    private func safariUnreadable(_ check: SecurityCheck) -> SecurityCheck {
+        var check = check
+        check.status = .unknown
+        check.details = "Harden needs Full Disk Access to read Safari's settings."
+        check.recommendation = "Open System Settings > Privacy & Security > Full Disk Access, turn on Harden, then scan again."
+        return check
+    }
+
+    private func checkSafariAutoOpen(_ safari: SafariSettings) async -> SecurityCheck {
         var check = SecurityCheck(
             id: "apps.safari.autoopen",
             name: "Safari Auto-Open Downloads",
@@ -25,11 +68,12 @@ struct ApplicationsChecker {
             category: .applications,
             severity: .medium
         )
-        let result = await ShellCommand.run("defaults read com.apple.Safari AutoOpenSafeDownloads 2>/dev/null")
-        if result.output == "0" || result.output.lowercased() == "false" {
+        guard safari.isReadable else { return safariUnreadable(check) }
+        let value = safari.value("AutoOpenSafeDownloads")
+        if value == 0 {
             check.status = .pass
             check.details = "Safari does not auto-open downloaded files."
-        } else if result.output == "1" || result.output.lowercased() == "true" {
+        } else if value == 1 {
             check.status = .warning
             check.details = "Safari automatically opens 'safe' files after downloading."
             check.recommendation = "In Safari > Settings > General, uncheck 'Open safe files after downloading'."
@@ -41,7 +85,7 @@ struct ApplicationsChecker {
         return check
     }
 
-    private func checkSafariFraudWarning() async -> SecurityCheck {
+    private func checkSafariFraudWarning(_ safari: SafariSettings) async -> SecurityCheck {
         var check = SecurityCheck(
             id: "apps.safari.fraudwarning",
             name: "Safari Fraudulent Site Warning",
@@ -49,11 +93,12 @@ struct ApplicationsChecker {
             category: .applications,
             severity: .medium
         )
-        let result = await ShellCommand.run("defaults read com.apple.Safari WarnAboutFraudulentWebsites 2>/dev/null")
-        if result.output == "1" || result.output.lowercased() == "true" {
+        guard safari.isReadable else { return safariUnreadable(check) }
+        let value = safari.value("WarnAboutFraudulentWebsites")
+        if value == 1 {
             check.status = .pass
             check.details = "Safari warns about fraudulent websites."
-        } else if result.output == "0" || result.output.lowercased() == "false" {
+        } else if value == 0 {
             check.status = .fail
             check.details = "Safari fraudulent website warnings are disabled."
             check.recommendation = "In Safari > Settings > Security, enable 'Warn when visiting a fraudulent website'."
@@ -64,7 +109,7 @@ struct ApplicationsChecker {
         return check
     }
 
-    private func checkSafariCrossSiteTracking() async -> SecurityCheck {
+    private func checkSafariCrossSiteTracking(_ safari: SafariSettings) async -> SecurityCheck {
         var check = SecurityCheck(
             id: "apps.safari.crosssite",
             name: "Safari Cross-Site Tracking Prevention",
@@ -72,24 +117,18 @@ struct ApplicationsChecker {
             category: .applications,
             severity: .medium
         )
-        let result = await ShellCommand.run("defaults read com.apple.Safari BlockStoragePolicy 2>/dev/null")
-        if result.output == "2" {
+        guard safari.isReadable else { return safariUnreadable(check) }
+        if safari.value("BlockStoragePolicy") == 2 || safari.value("WebKitPreferences.storageBlockingPolicy") == 1 {
             check.status = .pass
             check.details = "Safari prevents cross-site tracking."
         } else {
-            let fallback = await ShellCommand.run("defaults read com.apple.Safari WebKitPreferences.storageBlockingPolicy 2>/dev/null")
-            if fallback.output == "1" {
-                check.status = .pass
-                check.details = "Safari prevents cross-site tracking."
-            } else {
-                check.status = .pass
-                check.details = "Safari cross-site tracking prevention uses the default (enabled on modern macOS)."
-            }
+            check.status = .pass
+            check.details = "Safari cross-site tracking prevention uses the default (enabled on modern macOS)."
         }
         return check
     }
 
-    private func checkSafariAdPrivacy() async -> SecurityCheck {
+    private func checkSafariAdPrivacy(_ safari: SafariSettings) async -> SecurityCheck {
         var check = SecurityCheck(
             id: "apps.safari.adprivacy",
             name: "Safari Advertising Privacy",
@@ -97,11 +136,12 @@ struct ApplicationsChecker {
             category: .applications,
             severity: .low
         )
-        let result = await ShellCommand.run("defaults read com.apple.Safari WebKitPreferences.privateClickMeasurementEnabled 2>/dev/null")
-        if result.output == "1" || result.output.lowercased() == "true" {
+        guard safari.isReadable else { return safariUnreadable(check) }
+        let value = safari.value("WebKitPreferences.privateClickMeasurementEnabled")
+        if value == 1 {
             check.status = .pass
             check.details = "Privacy-preserving ad measurement is enabled."
-        } else if result.output == "0" || result.output.lowercased() == "false" {
+        } else if value == 0 {
             check.status = .info
             check.details = "Privacy-preserving ad measurement is disabled."
             check.recommendation = "In Safari > Settings > Privacy, enable 'Allow privacy-preserving measurement of ad effectiveness'."
@@ -112,7 +152,7 @@ struct ApplicationsChecker {
         return check
     }
 
-    private func checkSafariFullURL() async -> SecurityCheck {
+    private func checkSafariFullURL(_ safari: SafariSettings) async -> SecurityCheck {
         var check = SecurityCheck(
             id: "apps.safari.fullurl",
             name: "Safari Full Website Address",
@@ -120,8 +160,8 @@ struct ApplicationsChecker {
             category: .applications,
             severity: .low
         )
-        let result = await ShellCommand.run("defaults read com.apple.Safari ShowFullURLInSmartSearchField 2>/dev/null")
-        if result.output == "1" || result.output.lowercased() == "true" {
+        guard safari.isReadable else { return safariUnreadable(check) }
+        if safari.value("ShowFullURLInSmartSearchField") == 1 {
             check.status = .pass
             check.details = "Safari shows the full website address."
         } else {
@@ -132,7 +172,7 @@ struct ApplicationsChecker {
         return check
     }
 
-    private func checkSafariStatusBar() async -> SecurityCheck {
+    private func checkSafariStatusBar(_ safari: SafariSettings) async -> SecurityCheck {
         var check = SecurityCheck(
             id: "apps.safari.statusbar",
             name: "Safari Status Bar",
@@ -140,8 +180,8 @@ struct ApplicationsChecker {
             category: .applications,
             severity: .low
         )
-        let result = await ShellCommand.run("defaults read com.apple.Safari ShowOverlayStatusBar 2>/dev/null")
-        if result.output == "1" || result.output.lowercased() == "true" {
+        guard safari.isReadable else { return safariUnreadable(check) }
+        if safari.value("ShowOverlayStatusBar") == 1 {
             check.status = .pass
             check.details = "Safari status bar is shown."
         } else {
