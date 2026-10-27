@@ -253,16 +253,34 @@ struct NetworkChecker {
             category: .network,
             severity: .high
         )
-        let result = await ShellCommand.run("ifconfig 2>/dev/null | grep -c PROMISC")
-        let count = Int(result.output) ?? 0
-        if count == 0 {
+        let result = await ShellCommand.run("ifconfig 2>/dev/null")
+        let (unexplained, bridged) = Self.promiscuousInterfaces(in: result.output)
+        if unexplained.isEmpty {
             check.status = .pass
-            check.details = "No network interfaces are in promiscuous mode."
+            check.details = bridged.isEmpty
+                ? "No network interfaces are in promiscuous mode."
+                : "Only network bridge members (\(bridged.joined(separator: ", "))) are in promiscuous mode. Thunderbolt Bridge and virtual machine networking do this to forward traffic."
         } else {
             check.status = .warning
-            check.details = "\(count) network interface\(count == 1 ? " is" : "s are") in promiscuous mode."
+            check.details = "\(unexplained.joined(separator: ", ")) \(unexplained.count == 1 ? "is" : "are") in promiscuous mode."
             check.recommendation = "Unless you are running a packet capture tool intentionally, investigate which process is sniffing traffic."
         }
         return check
+    }
+
+    /// Splits interfaces with the PROMISC flag into bridge members, which the bridge driver puts
+    /// in promiscuous mode to forward traffic, and the rest, which may indicate packet sniffing.
+    static func promiscuousInterfaces(in ifconfig: String) -> (unexplained: [String], bridged: [String]) {
+        var promiscuous: [String] = []
+        var bridgeMembers: Set<String> = []
+        for line in ifconfig.split(separator: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("member: ") {
+                bridgeMembers.insert(String(trimmed.dropFirst("member: ".count).prefix { $0 != " " }))
+            } else if line.first?.isWhitespace == false, line.contains("PROMISC"), let colon = line.firstIndex(of: ":") {
+                promiscuous.append(String(line[..<colon]))
+            }
+        }
+        return (promiscuous.filter { !bridgeMembers.contains($0) }, promiscuous.filter { bridgeMembers.contains($0) })
     }
 }

@@ -234,7 +234,14 @@ struct PrivacyChecker {
         let dictationResult = await ShellCommand.run(
             "defaults read com.apple.assistant.support 'Dictation Enabled' 2>/dev/null"
         )
-        if dictationResult.output == "0" || dictationResult.output.lowercased() == "false" {
+        let autoEnableResult = await ShellCommand.run(
+            "defaults read com.apple.HIToolbox AppleDictationAutoEnable 2>/dev/null"
+        )
+        // Dictation is off until the user turns it on, so a missing key means off.
+        let dictationOn = [dictationResult.output, autoEnableResult.output].contains {
+            $0 == "1" || $0.lowercased() == "true"
+        }
+        if !dictationOn {
             check.status = .pass
             check.details = "Dictation is disabled."
         } else if onDeviceResult.output == "1" || onDeviceResult.output.lowercased() == "true" {
