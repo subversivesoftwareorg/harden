@@ -156,3 +156,27 @@ struct CISMappingTests {
         #expect(!CheckCategory.applications.icon.isEmpty)
     }
 }
+
+@Suite("Command Output Parsing Tests")
+struct CommandOutputParsingTests {
+
+    @Test("launchd overrides read both the enabled/disabled and the older true/false forms")
+    func launchdOverrides() {
+        let output = """
+
+        	disabled services = {
+        		"com.apple.ftpd" => disabled
+        		"com.openssh.sshd" => enabled
+        		"com.apple.screensharing" => false
+        		"com.apple.smbd" => true
+        	}
+        """
+        let overrides = LaunchdOverrides.parse(output)
+        #expect(overrides["com.openssh.sshd"] == true)
+        #expect(overrides["com.apple.ftpd"] == false)
+        #expect(overrides["com.apple.screensharing"] == true)
+        #expect(overrides["com.apple.smbd"] == false)
+        #expect(overrides["com.apple.auditd"] == nil)
+        #expect(overrides.count == 4)
+    }
+}

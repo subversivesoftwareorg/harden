@@ -500,11 +500,15 @@ struct SystemChecker {
             category: .systemProtection,
             severity: .medium
         )
-        let result = await ShellCommand.run("launchctl list 2>/dev/null | grep -c com.apple.auditd")
-        let running = (Int(result.output) ?? 0) > 0
-        if running {
+        // auditd ships disabled and starts on demand, so it may be enabled without running right now.
+        let enabled = await LaunchdOverrides.isEnabled("com.apple.auditd")
+        let running = await ShellCommand.run("pgrep -x auditd").exitCode == 0
+        if enabled == true || running {
             check.status = .pass
-            check.details = "Security auditing (auditd) is running."
+            check.details = "Security auditing (auditd) is enabled."
+        } else if enabled == nil {
+            check.status = .unknown
+            check.details = "Could not determine whether security auditing is enabled."
         } else {
             check.status = .fail
             check.details = "Security auditing (auditd) is not running."

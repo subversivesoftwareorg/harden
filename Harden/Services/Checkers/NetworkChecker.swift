@@ -185,14 +185,17 @@ struct NetworkChecker {
             category: .network,
             severity: .medium
         )
-        let result = await ShellCommand.run("launchctl list 2>/dev/null | grep -c 'org.apache.httpd'")
-        let count = Int(result.output) ?? 0
-        if count == 0 {
+        guard let enabled = await LaunchdOverrides.isEnabled("org.apache.httpd") else {
+            check.status = .unknown
+            check.details = "Could not determine whether the built-in HTTP server is enabled."
+            return check
+        }
+        if !enabled {
             check.status = .pass
             check.details = "The built-in HTTP server is not running."
         } else {
             check.status = .warning
-            check.details = "The built-in Apache HTTP server is running."
+            check.details = "The built-in Apache HTTP server is enabled."
             check.recommendation = "If not needed, disable with: sudo launchctl unload -w /System/Library/LaunchDaemons/org.apache.httpd.plist"
         }
         return check
@@ -206,9 +209,9 @@ struct NetworkChecker {
             category: .network,
             severity: .medium
         )
-        let result = await ShellCommand.run("launchctl list 2>/dev/null | grep -c 'com.apple.nfsd'")
-        let count = Int(result.output) ?? 0
-        if count == 0 {
+        // launchd keeps nfsd running whenever /etc/exports exists.
+        let result = await ShellCommand.run("pgrep -x nfsd")
+        if result.exitCode != 0 {
             check.status = .pass
             check.details = "The NFS server is not running."
         } else {

@@ -34,17 +34,18 @@ struct SharingChecker {
             category: .sharing,
             severity: .high
         )
-        let result = await ShellCommand.run("systemsetup -getremotelogin 2>/dev/null || echo 'unknown'")
-        if result.output.lowercased().contains("off") {
-            check.status = .pass
-            check.details = "Remote Login (SSH) is disabled."
-        } else if result.output.lowercased().contains("on") {
+        guard let enabled = await LaunchdOverrides.isEnabled("com.openssh.sshd") else {
+            check.status = .unknown
+            check.details = "Could not determine Remote Login status."
+            return check
+        }
+        if enabled {
             check.status = .warning
             check.details = "Remote Login (SSH) is enabled. Other users can access your Mac remotely."
             check.recommendation = "Unless you need SSH access, disable it in System Settings > General > Sharing > Remote Login."
         } else {
-            check.status = .unknown
-            check.details = "Could not determine Remote Login status."
+            check.status = .pass
+            check.details = "Remote Login (SSH) is disabled."
         }
         return check
     }
@@ -57,11 +58,14 @@ struct SharingChecker {
             category: .sharing,
             severity: .high
         )
-        let result = await ShellCommand.run("launchctl list 2>/dev/null | grep -c com.apple.screensharing")
-        let running = (Int(result.output) ?? 0) > 0
-        if running {
+        guard let enabled = await LaunchdOverrides.isEnabled("com.apple.screensharing") else {
+            check.status = .unknown
+            check.details = "Could not determine Screen Sharing status."
+            return check
+        }
+        if enabled {
             check.status = .warning
-            check.details = "Screen Sharing appears to be active."
+            check.details = "Screen Sharing is enabled."
             check.recommendation = "Unless you need remote access, disable it in System Settings > General > Sharing > Screen Sharing."
         } else {
             check.status = .pass
@@ -78,11 +82,14 @@ struct SharingChecker {
             category: .sharing,
             severity: .medium
         )
-        let result = await ShellCommand.run("launchctl list 2>/dev/null | grep -c com.apple.smbd")
-        let running = (Int(result.output) ?? 0) > 0
-        if running {
+        guard let enabled = await LaunchdOverrides.isEnabled("com.apple.smbd") else {
+            check.status = .unknown
+            check.details = "Could not determine File Sharing status."
+            return check
+        }
+        if enabled {
             check.status = .warning
-            check.details = "File Sharing (SMB) appears to be active."
+            check.details = "File Sharing (SMB) is enabled."
             check.recommendation = "Unless you need to share files, disable it in System Settings > General > Sharing > File Sharing."
         } else {
             check.status = .pass
@@ -99,11 +106,12 @@ struct SharingChecker {
             category: .sharing,
             severity: .high
         )
-        let result = await ShellCommand.run("launchctl list 2>/dev/null | grep -c com.apple.RemoteDesktop.agent")
-        let running = (Int(result.output) ?? 0) > 0
-        if running {
+        // The RemoteDesktop agent is loaded for every user; ARDAgent only runs when
+        // Remote Management is turned on.
+        let result = await ShellCommand.run("pgrep -x ARDAgent")
+        if result.exitCode == 0 {
             check.status = .warning
-            check.details = "Remote Management appears to be active."
+            check.details = "Remote Management is active."
             check.recommendation = "Unless managed by IT, disable it in System Settings > General > Sharing > Remote Management."
         } else {
             check.status = .pass
@@ -170,25 +178,25 @@ struct SharingChecker {
             category: .sharing,
             severity: .high
         )
-        var running: [String] = []
-        let fingerd = await ShellCommand.run("launchctl list com.apple.fingerd 2>/dev/null")
-        if fingerd.exitCode == 0 && !fingerd.output.isEmpty {
-            running.append("fingerd")
+        guard let overrides = await LaunchdOverrides.system() else {
+            check.status = .unknown
+            check.details = "Could not determine which legacy services are enabled."
+            return check
         }
-        let ftp = await ShellCommand.run("launchctl list com.apple.ftp-proxy 2>/dev/null")
-        if ftp.exitCode == 0 && !ftp.output.isEmpty {
-            running.append("ftp-proxy")
-        }
-        let telnet = await ShellCommand.run("launchctl list com.apple.telnetd 2>/dev/null")
-        if telnet.exitCode == 0 && !telnet.output.isEmpty {
-            running.append("telnetd")
-        }
-        if running.isEmpty {
+        // com.apple.ftp-proxy is left out: it only listens on localhost and is enabled by default.
+        let services = [
+            ("com.apple.fingerd", "fingerd"),
+            ("com.apple.ftpd", "ftpd"),
+            ("com.apple.telnetd", "telnetd"),
+            ("com.apple.tftpd", "tftpd"),
+        ]
+        let enabled = services.filter { overrides[$0.0] == true }.map(\.1)
+        if enabled.isEmpty {
             check.status = .pass
-            check.details = "No legacy insecure services are running."
+            check.details = "No legacy insecure services are enabled."
         } else {
             check.status = .fail
-            check.details = "Insecure services running: \(running.joined(separator: ", "))."
+            check.details = "Insecure services enabled: \(enabled.joined(separator: ", "))."
             check.recommendation = "Disable these services. They transmit data unencrypted and are not needed on modern systems."
         }
         return check
@@ -222,17 +230,18 @@ struct SharingChecker {
             category: .sharing,
             severity: .medium
         )
-        let result = await ShellCommand.run("systemsetup -getremoteappleevents 2>/dev/null")
-        if result.output.lowercased().contains("off") {
-            check.status = .pass
-            check.details = "Remote Apple Events is disabled."
-        } else if result.output.lowercased().contains("on") {
+        guard let enabled = await LaunchdOverrides.isEnabled("com.apple.AEServer") else {
+            check.status = .unknown
+            check.details = "Could not determine Remote Apple Events status."
+            return check
+        }
+        if enabled {
             check.status = .warning
             check.details = "Remote Apple Events is enabled."
             check.recommendation = "Disable via: sudo systemsetup -setremoteappleevents off"
         } else {
             check.status = .pass
-            check.details = "Remote Apple Events appears to be disabled (default)."
+            check.details = "Remote Apple Events is disabled."
         }
         return check
     }
@@ -332,8 +341,7 @@ struct SharingChecker {
             severity: .medium
         )
         // First check if SSH is even on
-        let sshStatus = await ShellCommand.run("systemsetup -getremotelogin 2>/dev/null || echo 'unknown'")
-        guard sshStatus.output.lowercased().contains("on") else {
+        guard await LaunchdOverrides.isEnabled("com.openssh.sshd") == true else {
             check.status = .pass
             check.details = "Remote Login is disabled — SSH hardening not applicable."
             return check
